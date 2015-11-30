@@ -21,7 +21,7 @@
 #include "dsa/AllocatorIdentification.h"
 
 #include "llvm/Pass.h"
-#include "llvm/IR/CallSite.h"
+#include "llvm/Support/CallSite.h"
 #include "llvm/IR/Module.h"
 #include "llvm/ADT/EquivalenceClasses.h"
 #include "llvm/ADT/DenseSet.h"

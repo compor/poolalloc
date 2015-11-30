@@ -17,6 +17,7 @@
 #include "dsa/DSGraph.h"
 #include "poolalloc/Heuristic.h"
 #include "poolalloc/PoolAllocate.h"
+#include "llvm/IR/DataLayout.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
@@ -24,8 +25,8 @@
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Debug.h"
-#include "llvm/IR/GetElementPtrTypeIterator.h"
-#include "llvm/IR/InstVisitor.h"
+#include "llvm/Support/GetElementPtrTypeIterator.h"
+#include "llvm/InstVisitor.h"
 #include "llvm/Support/FormattedStream.h"
 
 #include "llvm/Transforms/Utils/Cloning.h"
@@ -297,7 +298,7 @@ Value *CompressedPoolInfo::EmitPoolBaseLoad(Instruction &I) const {
     // Get the pool base pointer.
     Constant *Zero = ConstantInt::get(Int32Type, 0);
     Value *Opts[2] = {Zero, Zero};
-    Value *BasePtrPtr = GetElementPtrInst::Create(nullptr, getPoolDesc(), Opts,
+    Value *BasePtrPtr = GetElementPtrInst::Create(getPoolDesc(), Opts,
                                                   "poolbaseptrptr", &I);
     return new LoadInst(BasePtrPtr, "poolbaseptr", &I);
   } else {
@@ -309,7 +310,7 @@ Value *CompressedPoolInfo::EmitPoolBaseLoad(Instruction &I) const {
       while (isa<AllocaInst>(IP)) ++IP;
       Constant *Zero = ConstantInt::get(Int32Type, 0);
       Value *Opts[2] = {Zero, Zero};
-      Value *BasePtrPtr = GetElementPtrInst::Create(nullptr, getPoolDesc(),
+      Value *BasePtrPtr = GetElementPtrInst::Create(getPoolDesc(),
                                                     Opts, "poolbaseptrptr", IP);
       PoolBase = new LoadInst(BasePtrPtr, "poolbaseptr", IP);
     }
@@ -783,7 +784,7 @@ void InstructionRewriter::visitLoadInst(LoadInst &LI) {
   Value* Ops = getTransformedValue(LI.getOperand(0));
   if (Ops->getType() == Int16Type)
     Ops = CastInst::CreateZExtOrBitCast(Ops, Int32Type, "extend_idx", &LI);
-  Value *SrcPtr = GetElementPtrInst::Create(nullptr, BasePtr, Ops,
+  Value *SrcPtr = GetElementPtrInst::Create(BasePtr, Ops,
                                             LI.getOperand(0)->getName()+".pp",
                                             &LI);
   Type *DestTy = LoadingCompressedPtr ? MEMUINTTYPE : LI.getType();
@@ -850,8 +851,9 @@ void InstructionRewriter::visitStoreInst(StoreInst &SI) {
   if (Ops->getType() == Int16Type)
     Ops = CastInst::CreateZExtOrBitCast(Ops, Int32Type, "extend_idx", &SI);
 
-  Value *DestPtr = GetElementPtrInst::Create(
-      nullptr, BasePtr, Ops, SI.getOperand(1)->getName() + ".pp", &SI);
+  Value *DestPtr = GetElementPtrInst::Create( BasePtr, Ops, 
+                                         SI.getOperand(1)->getName() + ".pp", 
+										 &SI);
   DestPtr = CastInst::CreatePointerCast(DestPtr,
                                         PointerType::getUnqual(SrcVal->getType()),
                                         DestPtr->getName(), &SI);
@@ -981,7 +983,7 @@ void InstructionRewriter::visitCallInst(CallInst &CI) {
       if (const CompressedPoolInfo *DestPI = getPoolInfo(CI.getOperand(2))) {
         Value *BasePtr = DestPI->EmitPoolBaseLoad(CI);
         Value *SrcPtr = GetElementPtrInst::Create(
-            nullptr, BasePtr, getTransformedValue(CI.getOperand(2)),
+            BasePtr, getTransformedValue(CI.getOperand(2)),
             CI.getOperand(2)->getName() + ".pp", &CI);
         SrcPtr = CastInst::CreatePointerCast(SrcPtr, CI.getOperand(2)->getType(), "", &CI);
         CI.setOperand(2, SrcPtr);
@@ -991,7 +993,7 @@ void InstructionRewriter::visitCallInst(CallInst &CI) {
       if (const CompressedPoolInfo *DestPI = getPoolInfo(CI.getOperand(1))) {
         Value *BasePtr = DestPI->EmitPoolBaseLoad(CI);
         Value *SrcPtr = GetElementPtrInst::Create(
-            nullptr, BasePtr, getTransformedValue(CI.getOperand(1)),
+            BasePtr, getTransformedValue(CI.getOperand(1)),
             CI.getOperand(1)->getName() + ".pp", &CI);
         SrcPtr = CastInst::CreatePointerCast(SrcPtr, CI.getOperand(1)->getType(), "", &CI);
         CI.setOperand(1, SrcPtr);
@@ -1003,7 +1005,7 @@ void InstructionRewriter::visitCallInst(CallInst &CI) {
       if (const CompressedPoolInfo *DestPI = getPoolInfo(CI.getOperand(1))) {
         Value *BasePtr = DestPI->EmitPoolBaseLoad(CI);
         Value *SrcPtr = GetElementPtrInst::Create(
-            nullptr, BasePtr, getTransformedValue(CI.getOperand(1)),
+            BasePtr, getTransformedValue(CI.getOperand(1)),
             CI.getOperand(1)->getName() + ".pp", &CI);
         SrcPtr = CastInst::CreatePointerCast(SrcPtr, CI.getOperand(1)->getType(), "", &CI);
         CI.setOperand(1, SrcPtr);
@@ -1016,7 +1018,7 @@ void InstructionRewriter::visitCallInst(CallInst &CI) {
       if (const CompressedPoolInfo *DestPI = getPoolInfo(CI.getOperand(1))) {
         Value *BasePtr = DestPI->EmitPoolBaseLoad(CI);
         Value *SrcPtr = GetElementPtrInst::Create(
-            nullptr, BasePtr, getTransformedValue(CI.getOperand(1)),
+            BasePtr, getTransformedValue(CI.getOperand(1)),
             CI.getOperand(1)->getName() + ".pp", &CI);
         SrcPtr = CastInst::CreatePointerCast(SrcPtr, CI.getOperand(1)->getType(), "", &CI);
         CI.setOperand(1, SrcPtr);
@@ -1025,7 +1027,7 @@ void InstructionRewriter::visitCallInst(CallInst &CI) {
       if (const CompressedPoolInfo *DestPI = getPoolInfo(CI.getOperand(2))) {
         Value *BasePtr = DestPI->EmitPoolBaseLoad(CI);
         Value *SrcPtr = GetElementPtrInst::Create(
-            nullptr, BasePtr, getTransformedValue(CI.getOperand(2)),
+            BasePtr, getTransformedValue(CI.getOperand(2)),
             CI.getOperand(2)->getName() + ".pp", &CI);
         SrcPtr = CastInst::CreatePointerCast(SrcPtr, CI.getOperand(2)->getType(), "", &CI);
         CI.setOperand(2, SrcPtr);

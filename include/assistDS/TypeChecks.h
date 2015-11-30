@@ -20,8 +20,9 @@
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Pass.h"
-#include "llvm/IR/CallSite.h"
-#include "llvm/IR/Dominators.h"
+#include "llvm/IR/DataLayout.h"
+#include "llvm/Support/CallSite.h"
+#include "llvm/Analysis/Dominators.h"
 #include "llvm/Analysis/LoopInfo.h"
 
 #include <map>
@@ -49,7 +50,7 @@ private:
   std::map<BitCastInst*, Instruction*> BitCast_MD_Map;
 
   // Analysis from other passes.
-  const DataLayout *TD;
+  DataLayout *TD;
   AddressTakenAnalysis* addrAnalysis;
   
   unsigned int getTypeMarker(Type*);
@@ -100,8 +101,9 @@ public:
   virtual void print(raw_ostream &OS, const Module *M) const;
 
   virtual void getAnalysisUsage(AnalysisUsage &AU) const {
-    AU.addRequired<DominatorTreeWrapperPass>();
-    AU.addRequired<LoopInfoWrapperPass>();
+    AU.addRequired<DataLayout>();
+    AU.addRequired<DominatorTree>();
+    AU.addRequired<LoopInfo>();
     AU.addRequired<AddressTakenAnalysis>();
   }
 

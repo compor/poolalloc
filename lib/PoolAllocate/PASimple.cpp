@@ -18,11 +18,12 @@
 #include "dsa/DSGraph.h"
 #include "dsa/CallTargets.h"
 #include "poolalloc/PoolAllocate.h"
+#include "llvm/IR/DataLayout.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
-#include "llvm/IR/CFG.h"
+#include "llvm/Support/CFG.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 #include "llvm/ADT/DepthFirstIterator.h"
@@ -69,6 +70,7 @@ castTo (Value * V, Type * Ty, std::string Name, Instruction * InsertPt) {
 }
 
 void PoolAllocateSimple::getAnalysisUsage(AnalysisUsage &AU) const {
+  AU.addRequired<DataLayout>();
   // Get the Target Data information and the Graphs
   if (CompleteDSA) {
     AU.addRequiredTransitive<EQTDDataStructures>();
@@ -129,7 +131,7 @@ bool PoolAllocateSimple::runOnModule(Module &M) {
     Graphs = &getAnalysis<BasicDataStructures>();
   }
   assert (Graphs && "No DSA pass available!\n");
-  const DataLayout & TD = M.getDataLayout();
+  DataLayout & TD = getAnalysis<DataLayout>();
 
   // Add the pool* prototypes to the module
   AddPoolPrototypes(&M);

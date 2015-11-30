@@ -15,7 +15,7 @@
 #define DEBUG_TYPE "simplify-gep"
 
 #include "assistDS/SimplifyGEP.h"
-#include "llvm/IR/GetElementPtrTypeIterator.h"
+#include "llvm/Support/GetElementPtrTypeIterator.h"
 #include "llvm/Support/FormattedStream.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/IR/Constants.h"
@@ -75,7 +75,7 @@ static void preprocess(Module& M) {
 //  false - The module was not modified.
 //
 bool SimplifyGEP::runOnModule(Module& M) {
-  const DataLayout &TD = M.getDataLayout();
+  TD = &getAnalysis<DataLayout>();
   preprocess(M);
   for (Module::iterator F = M.begin(); F != M.end(); ++F){
     for (Function::iterator B = F->begin(), FE = F->end(); B != FE; ++B) {      
@@ -106,8 +106,8 @@ bool SimplifyGEP::runOnModule(Module& M) {
               if (CATy->getElementType() == StrippedPtrTy->getElementType()) {
                 // -> GEP i8* X, ...
                 SmallVector<Value*, 8> Idx(GEP->idx_begin()+1, GEP->idx_end());
-                GetElementPtrInst *Res = GetElementPtrInst::Create(
-                    nullptr, StrippedPtr, Idx, GEP->getName(), GEP);
+                GetElementPtrInst *Res =
+                  GetElementPtrInst::Create(StrippedPtr, Idx, GEP->getName(), GEP);
                 Res->setIsInBounds(GEP->isInBounds());
                 GEP->replaceAllUsesWith(Res);
                 continue;
@@ -133,14 +133,14 @@ bool SimplifyGEP::runOnModule(Module& M) {
             // into:  %t1 = getelementptr [2 x i32]* %str, i32 0, i32 %V; bitcast
             Type *SrcElTy = StrippedPtrTy->getElementType();
             Type *ResElTy=cast<PointerType>(PtrOp->getType())->getElementType();
-            if (SrcElTy->isArrayTy() &&
-                TD.getTypeAllocSize(cast<ArrayType>(SrcElTy)->getElementType()) ==
-                TD.getTypeAllocSize(ResElTy)) {
+            if (TD && SrcElTy->isArrayTy() &&
+                TD->getTypeAllocSize(cast<ArrayType>(SrcElTy)->getElementType()) ==
+                TD->getTypeAllocSize(ResElTy)) {
               Value *Idx[2];
               Idx[0] = Constant::getNullValue(Type::getInt32Ty(GEP->getContext()));
               Idx[1] = GEP->getOperand(1);
-              Value *NewGEP = GetElementPtrInst::Create(
-                  nullptr, StrippedPtr, Idx, GEP->getName(), GEP);
+              Value *NewGEP = GetElementPtrInst::Create(StrippedPtr, Idx,
+                                                        GEP->getName(), GEP);
               // V and GEP are both pointer types --> BitCast
               GEP->replaceAllUsesWith(new BitCastInst(NewGEP, GEP->getType(), GEP->getName(), GEP));
               continue;
@@ -151,9 +151,9 @@ bool SimplifyGEP::runOnModule(Module& M) {
             //   (where tmp = 8*tmp2) into:
             // getelementptr [100 x double]* %arr, i32 0, i32 %tmp2; bitcast
 
-            if (SrcElTy->isArrayTy() && ResElTy->isIntegerTy(8)) {
+            if (TD && SrcElTy->isArrayTy() && ResElTy->isIntegerTy(8)) {
               uint64_t ArrayEltSize =
-                TD.getTypeAllocSize(cast<ArrayType>(SrcElTy)->getElementType());
+                TD->getTypeAllocSize(cast<ArrayType>(SrcElTy)->getElementType());
 
               // Check to see if "tmp" is a scale by a multiple of ArrayEltSize.  We
               // allow either a mul, shift, or constant here.
@@ -198,8 +198,8 @@ bool SimplifyGEP::runOnModule(Module& M) {
                 Value *Idx[2];
                 Idx[0] = Constant::getNullValue(Type::getInt32Ty(GEP->getContext()));
                 Idx[1] = NewIdx;
-                Value *NewGEP = GetElementPtrInst::Create(
-                    nullptr, StrippedPtr, Idx, GEP->getName(), GEP);
+                Value *NewGEP = GetElementPtrInst::Create(StrippedPtr, Idx,
+                                                          GEP->getName(), GEP);
                 GEP->replaceAllUsesWith(new BitCastInst(NewGEP, GEP->getType(), GEP->getName(), GEP));
                 continue;
               }

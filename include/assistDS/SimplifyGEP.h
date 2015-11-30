@@ -20,10 +20,15 @@ namespace llvm {
   // Class: SimplifyGEP
   //
   class SimplifyGEP : public ModulePass {
+  private:
+    DataLayout * TD;
   public:
     static char ID;
     SimplifyGEP() : ModulePass(ID) {}
     virtual bool runOnModule(Module& M);
+    virtual void getAnalysisUsage(AnalysisUsage &AU) const {
+      AU.addRequired<DataLayout>();
+    }
   };
 }
 

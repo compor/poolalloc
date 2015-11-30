@@ -19,7 +19,7 @@
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Support/Debug.h"
-#include "llvm/IR/InstIterator.h"
+#include "llvm/Support/InstIterator.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/IR/Intrinsics.h"
 #include "llvm/Support/CommandLine.h"
@@ -153,7 +153,7 @@ bool TypeChecks::runOnModule(Module &M) {
   bool modified = false; // Flags whether we modified the module.
   bool transformIndirectCalls = true;
 
-  TD = &M.getDataLayout();
+  TD = &getAnalysis<DataLayout>();
   addrAnalysis = &getAnalysis<AddressTakenAnalysis>();
 
   // Create the necessary prototypes
@@ -258,7 +258,7 @@ bool TypeChecks::runOnModule(Module &M) {
     Function &F = *MI;
     if(F.isDeclaration())
       continue;
-    DominatorTree & DT = getAnalysis<DominatorTreeWrapperPass>(F).getDomTree();
+    DominatorTree & DT = getAnalysis<DominatorTree>(F);
     std::deque<DomTreeNode *> Worklist;
     Worklist.push_back (DT.getRootNode());
     while(Worklist.size()) {
@@ -322,8 +322,8 @@ bool TypeChecks::runOnModule(Module &M) {
     Constant *CNew = ConstantExpr::getBitCast(FI->second, F->getType());
 
     std::set<User *> toReplace;
-    for(Function::user_iterator User = F->user_begin();
-        User != F->user_end();++User) {
+    for(Function::use_iterator User = F->use_begin();
+        User != F->use_end();++User) {
       toReplace.insert(*User);
     }
     for(std::set<llvm::User *>::iterator userI = toReplace.begin(); userI != toReplace.end(); ++userI) {
@@ -331,8 +331,8 @@ bool TypeChecks::runOnModule(Module &M) {
       if(Constant *C = dyn_cast<Constant>(user)) {
         if(!isa<GlobalValue>(C)) {
           bool changeUse = true;
-          for(Value::user_iterator II = user->user_begin();
-              II != user->user_end(); II++) {
+          for(Value::use_iterator II = user->use_begin();
+              II != user->use_end(); II++) {
             if(CallInst *CI = dyn_cast<CallInst>(*II))
               if(CI->getCalledFunction()) {
                 if(CI->getCalledFunction()->isDeclaration())
@@ -507,7 +507,7 @@ void TypeChecks::optimizeChecks(Module &M) {
     Function &F = *MI;
     if(F.isDeclaration())
       continue;
-    DominatorTree & DT = getAnalysis<DominatorTreeWrapperPass>(F).getDomTree();
+    DominatorTree & DT = getAnalysis<DominatorTree>(F);
     std::deque<DomTreeNode *> Worklist;
     Worklist.push_back (DT.getRootNode());
     while(Worklist.size()) {
@@ -521,7 +521,7 @@ void TypeChecks::optimizeChecks(Module &M) {
         if(CI->getCalledFunction() != checkTypeInst)
           continue;
         std::list<Instruction *>toDelete;
-        for(Value::user_iterator User = CI->getOperand(3)->user_begin(); User != CI->getOperand(3)->user_end(); ++User) {
+        for(Value::use_iterator User = CI->getOperand(3)->use_begin(); User != CI->getOperand(3)->use_end(); ++User) {
           CallInst *CI2 = dyn_cast<CallInst>(*User);
           if(!CI2)
             continue;
@@ -551,8 +551,8 @@ void TypeChecks::optimizeChecks(Module &M) {
     Function &F = *MI;
     if(F.isDeclaration())
       continue;
-    DominatorTree & DT = getAnalysis<DominatorTreeWrapperPass>(F).getDomTree();
-    LoopInfo & LI = getAnalysis<LoopInfoWrapperPass>(F).getLoopInfo();
+    DominatorTree & DT = getAnalysis<DominatorTree>(F);
+    LoopInfo & LI = getAnalysis<LoopInfo>(F);
     std::deque<DomTreeNode *> Worklist;
     Worklist.push_back (DT.getRootNode());
     while(Worklist.size()) {
@@ -610,7 +610,7 @@ void TypeChecks::addTypeMap(Module &M) {
                                           CA,
                                           "");
   GV->setInitializer(CA);
-  Constant *C = ConstantExpr::getGetElementPtr(nullptr, GV,Indices);
+  Constant *C = ConstantExpr::getGetElementPtr(GV,Indices);
   Values[0] = C;
 
   // For each used type, create a new entry. 
@@ -632,7 +632,7 @@ void TypeChecks::addTypeMap(Module &M) {
                                             CA,
                                             "");
     GV->setInitializer(CA);
-    Constant *C = ConstantExpr::getGetElementPtr(nullptr, GV, Indices);
+    Constant *C = ConstantExpr::getGetElementPtr(GV, Indices);
     Values[TI->second]= C;
   }
 
@@ -698,7 +698,7 @@ bool TypeChecks::visitAddressTakenFunction(Module &M, Function &F) {
 
   std::vector<Instruction *>toDelete;
   // Find all uses of the function
-  for(Value::user_iterator ui = F.user_begin(), ue = F.user_end();
+  for(Value::use_iterator ui = F.use_begin(), ue = F.use_end();
       ui != ue;++ui)  {
     if(InvokeInst *II = dyn_cast<InvokeInst>(*ui)) {
       if(II->getCalledValue()->stripPointerCasts() != &F)
@@ -928,7 +928,7 @@ bool TypeChecks::visitInternalVarArgFunction(Module &M, Function &F) {
 
   std::vector<Instruction *>toDelete;
   // Find all uses of the function
-  for(Value::user_iterator ui = F.user_begin(), ue = F.user_end();
+  for(Value::use_iterator ui = F.use_begin(), ue = F.use_end();
       ui != ue;ui ++)  {
 
     // Check for call sites
@@ -1052,7 +1052,7 @@ bool TypeChecks::visitInternalByValFunction(Module &M, Function &F) {
 
   // Update the call sites
   std::vector<Instruction *>toDelete;
-  for(Value::user_iterator ui = F.user_begin(), ue = F.user_end();
+  for(Value::use_iterator ui = F.use_begin(), ue = F.use_end();
       ui != ue; ui++)  {
     // Check that F is the called value
     if(InvokeInst *II = dyn_cast<InvokeInst>(*ui)) {
@@ -2129,7 +2129,7 @@ bool TypeChecks::visitLoadInst(Module &M, LoadInst &LI) {
 // BCI - ptr
 // I - instruction whose uses to instrument
 bool TypeChecks::visitUses(Instruction *I, Instruction *AI, Value *BCI) {
-  for(Value::user_iterator II = I->user_begin(); II != I->user_end(); ++II) {
+  for(Value::use_iterator II = I->use_begin(); II != I->use_end(); ++II) {
     if(DisablePtrCmpChecks) {
       if(isa<CmpInst>(*II)) {
         if(I->getType()->isPointerTy())

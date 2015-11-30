@@ -15,11 +15,10 @@
 #include "assistDS/GEPExprArgs.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Operator.h"
-#include "llvm/IR/Use.h"
-#include "llvm/IR/GetElementPtrTypeIterator.h"
+#include "llvm/Support/GetElementPtrTypeIterator.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 #include "llvm/ADT/Statistic.h"
-#include "llvm/IR/ValueMap.h"
+#include "llvm/ADT/ValueMap.h"
 #include "llvm/Support/FormattedStream.h"
 #include "llvm/Support/Debug.h"
 #include <vector>
@@ -143,7 +142,7 @@ bool GEPExprArgs::runOnModule(Module& M) {
           SmallVector<Value*, 8> Indices;
           Indices.append(GEP->op_begin()+1, GEP->op_end());
           GetElementPtrInst *GEP_new = GetElementPtrInst::Create(
-              nullptr, cast<Value>(NI), Indices, "", InsertPoint);
+            cast<Value>(NI), Indices, "", InsertPoint);
           fargs.at(argNum)->replaceAllUsesWith(GEP_new);
           unsigned j = argNum + 1;
           for(; j < CI->getNumOperands();j++) {

@@ -18,7 +18,7 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Operator.h"
 #include "llvm/IR/Module.h"
-#include "llvm/IR/GetElementPtrTypeIterator.h"
+#include "llvm/Support/GetElementPtrTypeIterator.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/Support/FormattedStream.h"
@@ -142,7 +142,7 @@ static void simplifyGEP(GetElementPtrInst *GEP) {
       GetElementPtrInst *GEPNew =  (GEP->isInBounds() && Src->isInBounds()) ?
         GetElementPtrInst::CreateInBounds(Src->getOperand(0), Indices,
                                           GEP->getName(), GEP) :
-        GetElementPtrInst::Create(nullptr, Src->getOperand(0), Indices,
+        GetElementPtrInst::Create(Src->getOperand(0), Indices,
                                   GEP->getName(), GEP);
       numMerged++;
       GEP->replaceAllUsesWith(GEPNew);
