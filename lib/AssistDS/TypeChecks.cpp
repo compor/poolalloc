@@ -33,7 +33,7 @@ using namespace llvm;
 
 char TypeChecks::ID = 0;
 
-static RegisterPass<TypeChecks> 
+static RegisterPass<TypeChecks>
 TC("typechecks", "Insert runtime type checks", false, true);
 
 // Pass statistics
@@ -358,10 +358,10 @@ bool TypeChecks::runOnModule(Module &M) {
           // replace the use specified in ReplaceWorklist.
           //
           if(isa<ConstantArray>(C)) {
-              C->replaceUsesOfWithOnConstant(F, CNew, ReplaceWorklist[0]);
+              C->handleOperandChange(F, CNew, ReplaceWorklist[0]);
           } else {
             for (unsigned index = 0; index < ReplaceWorklist.size(); ++index) {
-              C->replaceUsesOfWithOnConstant(F, CNew, ReplaceWorklist[index]);
+              C->handleOperandChange(F, CNew, ReplaceWorklist[index]);
             }
           }
           continue;
@@ -603,7 +603,7 @@ void TypeChecks::addTypeMap(Module &M) {
 
   Constant *CA = ConstantDataArray::getString(M.getContext(),
                                               "UNINIT", true);
-  GlobalVariable *GV = new GlobalVariable(M, 
+  GlobalVariable *GV = new GlobalVariable(M,
                                           CA->getType(),
                                           true,
                                           GlobalValue::ExternalLinkage,
@@ -613,10 +613,10 @@ void TypeChecks::addTypeMap(Module &M) {
   Constant *C = ConstantExpr::getGetElementPtr(nullptr, GV,Indices);
   Values[0] = C;
 
-  // For each used type, create a new entry. 
+  // For each used type, create a new entry.
   // Also add these strings to the Values list
   std::map<Type*, unsigned int >::iterator TI = UsedTypes.begin(),
-    TE = UsedTypes.end(); 
+    TE = UsedTypes.end();
   for(;TI!=TE; ++TI) {
     std::string *type = new std::string();
     llvm::raw_string_ostream *test = new llvm::raw_string_ostream(*type);
@@ -625,7 +625,7 @@ void TypeChecks::addTypeMap(Module &M) {
     //WriteTypeSymbolic(*test, TI->first, &M);
     Constant *CA = ConstantDataArray::getString(M.getContext(),
                                                 test->str(), true);
-    GlobalVariable *GV = new GlobalVariable(M, 
+    GlobalVariable *GV = new GlobalVariable(M,
                                             CA->getType(),
                                             true,
                                             GlobalValue::ExternalLinkage,
@@ -636,7 +636,7 @@ void TypeChecks::addTypeMap(Module &M) {
     Values[TI->second]= C;
   }
 
-  new GlobalVariable(M, 
+  new GlobalVariable(M,
                      AType,
                      true,
                      GlobalValue::ExternalLinkage,
@@ -674,7 +674,7 @@ bool TypeChecks::visitAddressTakenFunction(Module &M, Function &F) {
   NI++;
   NI->setName("MD");
   NI++;
-  for(Function::arg_iterator II = F.arg_begin(); 
+  for(Function::arg_iterator II = F.arg_begin();
       NI!=NewF->arg_end(); ++II, ++NI) {
     // Each new argument maps to the argument in the old function
     // For each of these also copy attributes
@@ -798,13 +798,13 @@ bool TypeChecks::visitVarArgFunction(Module &M, Function &F) {
 
 // each vararg function is modified so that the first
 // argument is the number of arguments passed in,
-// and the second is a pointer to a metadata array, 
+// and the second is a pointer to a metadata array,
 // containing type information for each of the arguments
 
 // These are read and stored at the beginning of the function.
 
 // We keep a counter for the number of arguments accessed
-// from the va_list(Counter). It is incremented and 
+// from the va_list(Counter). It is incremented and
 // checked on every va_arg access. It is initialized to zero.
 // It is also reset to zero on a call to va_start.
 
@@ -840,7 +840,7 @@ bool TypeChecks::visitInternalVarArgFunction(Module &M, Function &F) {
   NI++;
   NI->setName("MD");
   NI++;
-  for(Function::arg_iterator II = F.arg_begin(); 
+  for(Function::arg_iterator II = F.arg_begin();
       NI!=NewF->arg_end(); ++II, ++NI) {
     // Each new argument maps to the argument in the old function
     // For each of these also copy attributes
@@ -890,7 +890,7 @@ bool TypeChecks::visitInternalVarArgFunction(Module &M, Function &F) {
         continue;
       if(!CalledF->isIntrinsic())
         continue;
-      if(CalledF->getIntrinsicID() != Intrinsic::vastart) 
+      if(CalledF->getIntrinsicID() != Intrinsic::vastart)
         continue;
       // Reinitialize the counter
       Value *BCI = castTo(CI->getArgOperand(0), VoidPtrTy, "", CI);
@@ -914,7 +914,7 @@ bool TypeChecks::visitInternalVarArgFunction(Module &M, Function &F) {
         continue;
       if(!CalledF->isIntrinsic())
         continue;
-      if(CalledF->getIntrinsicID() != Intrinsic::vacopy) 
+      if(CalledF->getIntrinsicID() != Intrinsic::vacopy)
         continue;
       Value *BCI_Src = castTo(CI->getArgOperand(1), VoidPtrTy, "", CI);
       Value *BCI_Dest = castTo(CI->getArgOperand(0), VoidPtrTy, "", CI);
@@ -958,7 +958,7 @@ bool TypeChecks::visitInternalVarArgFunction(Module &M, Function &F) {
       }
 
       // Create the new call
-      InvokeInst *II_New = InvokeInst::Create(NewF, 
+      InvokeInst *II_New = InvokeInst::Create(NewF,
                                               II->getNormalDest(),
                                               II->getUnwindDest(),
                                               Args,
@@ -1015,7 +1015,7 @@ bool TypeChecks::visitByValFunction(Module &M, Function &F) {
   // For external functions
   //  Create an internal clone (treated same as internal functions)
   //  Modify the original function
-  //  To assume that the metadata for the byval arguments is TOP 
+  //  To assume that the metadata for the byval arguments is TOP
 
   if(F.hasInternalLinkage()) {
     visitInternalByValFunction(M, F);
@@ -1058,7 +1058,7 @@ bool TypeChecks::visitInternalByValFunction(Module &M, Function &F) {
     if(InvokeInst *II = dyn_cast<InvokeInst>(*ui)) {
       if(II->getCalledFunction() == &F) {
         SmallVector<Value*, 8> Args;
-        
+
         // TODO: not a good idea:
         AttributeSet NewCallPAL=AttributeSet();
 
@@ -1074,10 +1074,10 @@ bool TypeChecks::visitInternalByValFunction(Module &M, Function &F) {
         for(unsigned j =3;j<II->getNumOperands();j++, NI++) {
           // Add the original argument
           Args.push_back(II->getOperand(j));
-          // If there are attributes on this argument, copy them to the correct 
+          // If there are attributes on this argument, copy them to the correct
           // position in the NewCallPAL
           //FIXME: copy the rest of the attributes.
-          if(NI->hasByValAttr()) 
+          if(NI->hasByValAttr())
             continue;
           AttributeSet Attrs = CallPAL.getParamAttributes(j);
           if (!Attrs.isEmpty()) {
@@ -1106,7 +1106,7 @@ bool TypeChecks::visitInternalByValFunction(Module &M, Function &F) {
     } else if(CallInst *CI = dyn_cast<CallInst>(*ui)) {
       if(CI->getCalledFunction() == &F) {
         SmallVector<Value*, 8> Args;
-        
+
       // TODO: not a good idea:
       AttributeSet NewCallPAL=AttributeSet();
 
@@ -1122,10 +1122,10 @@ bool TypeChecks::visitInternalByValFunction(Module &M, Function &F) {
         for(unsigned j =1;j<CI->getNumOperands();j++, II++) {
           // Add the original argument
           Args.push_back(CI->getOperand(j));
-          // If there are attributes on this argument, copy them to the correct 
+          // If there are attributes on this argument, copy them to the correct
           // position in the NewCallPAL
           //FIXME: copy the rest of the attributes.
-          if(II->hasByValAttr()) 
+          if(II->hasByValAttr())
             continue;
           AttributeSet Attrs = CallPAL.getParamAttributes(j);
           if (!Attrs.isEmpty()) {
@@ -1224,7 +1224,7 @@ bool TypeChecks::visitExternalByValFunction(Module &M, Function &F) {
 // symbol table from the module.
 void TypeChecks::print(raw_ostream &OS, const Module *M) const {
   OS << "Types in use by this module:\n";
-  std::map<Type *,unsigned int>::const_iterator I = UsedTypes.begin(), 
+  std::map<Type *,unsigned int>::const_iterator I = UsedTypes.begin(),
     E = UsedTypes.end();
   for (; I != E; ++I) {
     OS << "  ";
@@ -1250,7 +1250,7 @@ bool TypeChecks::initShadow(Module &M) {
   BasicBlock *BB = BasicBlock::Create(M.getContext(), "entry", cast<Function>(RuntimeCtor));
   CallInst::Create(InitFn, "", BB);
 
-  Instruction *InsertPt = ReturnInst::Create(M.getContext(), BB); 
+  Instruction *InsertPt = ReturnInst::Create(M.getContext(), BB);
 
   // record all globals
   for (Module::global_iterator I = M.global_begin(), E = M.global_end();
@@ -1270,7 +1270,7 @@ bool TypeChecks::initShadow(Module &M) {
       Args.push_back(getTagCounter());
       CallInst::Create(trackInitInst, Args, "", InsertPt);
       continue;
-    } 
+    }
     if(!I->hasInitializer())
       continue;
     SmallVector<Value*,8>index;
@@ -1362,7 +1362,7 @@ bool TypeChecks::initShadow(Module &M) {
     return true;
   }
 
-bool TypeChecks::visitGlobal(Module &M, GlobalVariable &GV, 
+bool TypeChecks::visitGlobal(Module &M, GlobalVariable &GV,
                              Constant *C, Instruction &I, SmallVector<Value *,8> Indices) {
 
   if(ConstantArray *CA = dyn_cast<ConstantArray>(C)) {
@@ -1514,8 +1514,8 @@ bool TypeChecks::visitCallSite(Module &M, CallSite CS) {
   if (Function *F = dyn_cast<Function>(Callee)) {
     if (F->isIntrinsic()) {
       switch(F->getIntrinsicID()) {
-      case Intrinsic::memcpy: 
-      case Intrinsic::memmove: 
+      case Intrinsic::memcpy:
+      case Intrinsic::memmove:
         {
           Value *BCI_Src = castTo(CS.getArgument(1), VoidPtrTy, "", I);
           Value *BCI_Dest = castTo(CS.getArgument(0), VoidPtrTy, "", I);
@@ -1549,7 +1549,7 @@ bool TypeChecks::visitCallSite(Module &M, CallSite CS) {
       Args.push_back(getTagCounter());
       Constant *F = M.getOrInsertFunction("trackgetcwd", VoidTy, VoidPtrTy, Int32Ty, NULL);
       CallInst *CI = CallInst::Create(F, Args);
-      Instruction *InsertPt = I;  
+      Instruction *InsertPt = I;
       if (InvokeInst *II = dyn_cast<InvokeInst>(InsertPt)) {
         InsertPt = II->getNormalDest()->begin();
         while (isa<PHINode>(InsertPt))
@@ -1564,7 +1564,7 @@ bool TypeChecks::visitCallSite(Module &M, CallSite CS) {
       Args.push_back(getTagCounter());
       Constant *F = M.getOrInsertFunction("trackgetcwd", VoidTy, VoidPtrTy, Int32Ty, NULL);
       CallInst *CI = CallInst::Create(F, Args);
-      Instruction *InsertPt = I;  
+      Instruction *InsertPt = I;
       if (InvokeInst *II = dyn_cast<InvokeInst>(InsertPt)) {
         InsertPt = II->getNormalDest()->begin();
         while (isa<PHINode>(InsertPt))
@@ -1624,7 +1624,7 @@ bool TypeChecks::visitCallSite(Module &M, CallSite CS) {
       Constant *F = M.getOrInsertFunction("trackStrcpyInst", VoidTy, VoidPtrTy, VoidPtrTy, Int32Ty, NULL);
       CallInst *CI = CallInst::Create(F, Args);
       CI->insertAfter(BCI_Src);
-    } else if (F->getName().str() == std::string("gettimeofday") || 
+    } else if (F->getName().str() == std::string("gettimeofday") ||
                F->getName().str() == std::string("time") ||
                F->getName().str() == std::string("times")) {
       Value *BCI = castTo(CS.getArgument(0), VoidPtrTy, "", I);
@@ -1738,7 +1738,7 @@ bool TypeChecks::visitCallSite(Module &M, CallSite CS) {
       Constant *F = M.getOrInsertFunction("trackgetcwd", VoidTy, VoidPtrTy, Int32Ty, NULL);
       CallInst *CI = CallInst::Create(F, Args);
       CI->insertAfter(BCI);
-    } else if (F->getName().str() == std::string("getrusage") || 
+    } else if (F->getName().str() == std::string("getrusage") ||
                F->getName().str() == std::string("getrlimit") ||
                F->getName().str() == std::string("stat") ||
                F->getName().str() == std::string("vfsstat") ||
@@ -2077,7 +2077,7 @@ bool TypeChecks::visitInputFunctionValue(Module &M, Value *V, Instruction *CI) {
   CallInst::Create(trackStoreInst, Args, "", CI);
 
   if(PTy == VoidPtrTy) {
-    // TODO: This is currently a heuristic for strings. If we see a i8* in a call to 
+    // TODO: This is currently a heuristic for strings. If we see a i8* in a call to
     // input functions, treat as string, and get length using strlen.
     std::vector<Value*> Args;
     Args.push_back(BCI);

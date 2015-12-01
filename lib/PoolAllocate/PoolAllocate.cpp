@@ -1,10 +1,10 @@
 //===-- PoolAllocate.cpp - Pool Allocation Pass ---------------------------===//
-// 
+//
 //                     The LLVM Compiler Infrastructure
 //
 // This file was developed by the LLVM research group and is distributed under
 // the University of Illinois Open Source License. See LICENSE.TXT for details.
-// 
+//
 //===----------------------------------------------------------------------===//
 //
 // This transform changes programs so that disjoint data structures are
@@ -237,7 +237,7 @@ bool PoolAllocate::runOnModule(Module &M) {
   // FIXME: Is the PASS_DEFAULT value used?
   //
   if (dsa_pass_to_use == PASS_EQTD)
-    Graphs = &getAnalysis<EQTDDataStructures>();    
+    Graphs = &getAnalysis<EQTDDataStructures>();
   else
     Graphs = &getAnalysis<EquivBUDataStructures>();
 
@@ -258,7 +258,7 @@ bool PoolAllocate::runOnModule(Module &M) {
     return true;
 
   //
-  // Find the DSNodes for each function that will require pool descriptor 
+  // Find the DSNodes for each function that will require pool descriptor
   // arguments to be passed into the function.
   //
   FindPoolArgs (M);
@@ -400,7 +400,7 @@ bool PoolAllocate::runOnModule(Module &M) {
           // Do replacements in the worklist.
           //
           for (unsigned index = 0; index < ReplaceWorklist.size(); ++index)
-            C->replaceUsesOfWithOnConstant(F, CEnew, ReplaceWorklist[index]);
+            C->handleOperandChange(F, CEnew, ReplaceWorklist[index]);
           continue;
         }
       }
@@ -420,12 +420,12 @@ bool PoolAllocate::runOnModule(Module &M) {
   //        overhead measurements?).
   //
   // FIXME: Breaks invalid C code. Remove from poolalloc and move to a separate pass.
-  
+
   #if 0
   if (CurHeuristic->IsRealHeuristic())
     MicroOptimizePoolCalls();
   #endif
- 
+
   return true;
 }
 
@@ -445,7 +445,7 @@ void PoolAllocate::AddPoolPrototypes(Module* M) {
   // TODO: I'm not sure how to do this on mainline.
   //M->addTypeName("PoolDescriptor", PoolDescType);
 
-  
+
   // Get poolinit function.
   PoolInit = M->getOrInsertFunction("poolinit", VoidType,
                                             PoolDescPtrTy, Int32Type,
@@ -454,12 +454,12 @@ void PoolAllocate::AddPoolPrototypes(Module* M) {
   // Get pooldestroy function.
   PoolDestroy = M->getOrInsertFunction("pooldestroy", VoidType,
                                                PoolDescPtrTy, NULL);
-  
+
   // The poolalloc function.
-  PoolAlloc = M->getOrInsertFunction("poolalloc", 
+  PoolAlloc = M->getOrInsertFunction("poolalloc",
                                              VoidPtrTy, PoolDescPtrTy,
                                              Int32Type, NULL);
-  
+
   // The poolrealloc function.
   PoolRealloc = M->getOrInsertFunction("poolrealloc",
                                                VoidPtrTy, PoolDescPtrTy,
@@ -473,7 +473,7 @@ void PoolAllocate::AddPoolPrototypes(Module* M) {
   // The poolmemalign function.
   PoolMemAlign = M->getOrInsertFunction("poolmemalign",
                                                 VoidPtrTy, PoolDescPtrTy,
-                                                Int32Type, Int32Type, 
+                                                Int32Type, Int32Type,
                                                 NULL);
 
   // The poolstrdup function.
@@ -509,7 +509,7 @@ static void getCallsOf(Constant *C, std::vector<CallInst*> &Calls) {
     if ((CE = dyn_cast<ConstantExpr>(C)) && (CE->isCast()))
       F = dyn_cast<Function>(CE->getOperand(0));
     else
-      assert (0 && "Constant is not a Function of ConstantExpr!"); 
+      assert (0 && "Constant is not a Function of ConstantExpr!");
   }
   Calls.clear();
   for (Value::user_iterator UI = F->user_begin(), E = F->user_end(); UI != E; ++UI)
@@ -530,7 +530,7 @@ OptimizePointerNotNull(Value *V, LLVMContext * Context) {
     Instruction *User = cast<Instruction>(*I);
     if (isa<ICmpInst>(User) && cast<ICmpInst>(User)->isEquality()) {
       ICmpInst * ICI = cast<ICmpInst>(User);
-      if (isa<Constant>(User->getOperand(1)) && 
+      if (isa<Constant>(User->getOperand(1)) &&
           cast<Constant>(User->getOperand(1))->isNullValue()) {
         bool CondIsTrue = ICI->getPredicate() == ICmpInst::ICMP_NE;
         Type * Int1Type  = IntegerType::getInt1Ty(*Context);
@@ -631,7 +631,7 @@ GetNodesReachableFromGlobals (DSGraph* G,
 
     //
     // Scan through all DSNodes in the local graph.  If a local DSNode has a
-    // corresponding DSNode in the globals graph that is reachable from a 
+    // corresponding DSNode in the globals graph that is reachable from a
     // global, then add the local DSNode to the set of DSNodes reachable from a
     // global.
     //
@@ -708,8 +708,8 @@ PoolAllocate::FindPoolArgs (Module & M) {
       }
       bool doNotPassPools = externFunctionFound;
       // go through the list of functions to check if any is external
-      // or callable from an incomplete call site. Then no pool args 
-      // are needed; else find pool args. 
+      // or callable from an incomplete call site. Then no pool args
+      // are needed; else find pool args.
       if(!doNotPassPools){
         for (unsigned index = 0; index < Functions.size(); ++index) {
           const Function * F = Functions[index];
@@ -719,12 +719,12 @@ PoolAllocate::FindPoolArgs (Module & M) {
           }
         }
       }
-       
+
       if(doNotPassPools) {
-        // For functions that are in the same equivalence class as an 
-        // external function, we cannot pass pool args. Because we 
-        // cannot know which function the call site calls, the 
-        // internal function or the external ones. 
+        // For functions that are in the same equivalence class as an
+        // external function, we cannot pass pool args. Because we
+        // cannot know which function the call site calls, the
+        // internal function or the external ones.
         // FIXME: Solve this by devirtualizing the call site.
         for (unsigned index = 0; index < Functions.size(); ++index) {
           Function * F = const_cast<Function*>(Functions[index]);
@@ -746,7 +746,7 @@ PoolAllocate::FindPoolArgs (Module & M) {
       }
     }
   }
-  
+
   //
   // Make sure every function has a FuncInfo structure.
   //
@@ -916,7 +916,7 @@ PoolAllocate::MakeFunctionClone (Function & F) {
   if (MaxArgsAdded < FI.ArgNodes.size())
     MaxArgsAdded = FI.ArgNodes.size();
   ++NumCloned;
- 
+
   //
   // Determine the type of the new function.  We will insert new parameters
   // for the pools to pass into the function, and then we will insert the
@@ -1081,7 +1081,7 @@ GlobalVariable *PoolAllocate::CreateGlobalPool(unsigned RecSize, unsigned Align,
                                                std::string name, Instruction *IPHint) {
   GlobalVariable *GV =
     new GlobalVariable(*CurModule,
-                       PoolDescType, false, GlobalValue::InternalLinkage, 
+                       PoolDescType, false, GlobalValue::InternalLinkage,
                        ConstantAggregateZero::get(PoolDescType), name);
 
   // Update the global DSGraph to include this.
@@ -1360,12 +1360,12 @@ void PoolAllocate::InitializeAndDestroyPool(Function &F, const DSNode *Node,
   // Convert the PoolUses/PoolFrees sets into something specific to this pool: a
   // set of which blocks are immediately using the pool.
   std::set<BasicBlock*> UsingBlocks;
-    
+
   std::multimap<AllocaInst*, Instruction*>::iterator PUI, PUE;
   tie(PUI, PUE) = PoolUses.equal_range(PD);
   for (; PUI != PUE; ++PUI)
     UsingBlocks.insert(PUI->second->getParent());
-    
+
   // To calculate all of the basic blocks which require the pool to be
   // initialized before, do a depth first search on the CFG from the using
   // blocks.
@@ -1377,7 +1377,7 @@ void PoolAllocate::InitializeAndDestroyPool(Function &F, const DSNode *Node,
            DI = df_ext_begin(*I, InitializedBefore),
            DE = df_ext_end(*I, InitializedBefore); DI != DE; ++DI)
       /* empty */;
-      
+
     for (idf_ext_iterator<BasicBlock*, std::set<BasicBlock*> >
            DI = idf_ext_begin(*I, DestroyedAfter),
            DE = idf_ext_end(*I, DestroyedAfter); DI != DE; ++DI)
@@ -1390,15 +1390,15 @@ void PoolAllocate::InitializeAndDestroyPool(Function &F, const DSNode *Node,
                         std::inserter(LiveBlocks, LiveBlocks.end()));
   InitializedBefore.clear();
   DestroyedAfter.clear();
-    
+
   DEBUG(errs() << "POOL: " << PD->getName().str() << " information:\n");
   DEBUG(errs() << "  Live in blocks: ");
   DEBUG(for (std::set<BasicBlock*>::iterator I = LiveBlocks.begin(),
                E = LiveBlocks.end(); I != E; ++I)
           errs() << (*I)->getName().str() << " ");
   DEBUG(errs() << "\n");
-    
- 
+
+
   std::vector<Instruction*> PoolInitPoints;
   std::vector<Instruction*> PoolDestroyPoints;
 
@@ -1418,18 +1418,18 @@ void PoolAllocate::InitializeAndDestroyPool(Function &F, const DSNode *Node,
   } else {
     // Keep track of the blocks we have inserted poolinit/destroy into.
     std::set<BasicBlock*> PoolInitInsertedBlocks, PoolDestroyInsertedBlocks;
-    
+
     for (std::set<BasicBlock*>::iterator I = LiveBlocks.begin(),
            E = LiveBlocks.end(); I != E; ++I) {
       BasicBlock *BB = *I;
       TerminatorInst *Term = BB->getTerminator();
-      
+
       // Check the predecessors of this block.  If any preds are not in the
       // set, or if there are no preds, insert a pool init.
       bool AllIn, NoneIn;
       AllOrNoneInSet(pred_begin(BB), pred_end(BB), LiveBlocks, AllIn,
                      NoneIn);
-      
+
       if (NoneIn) {
         if (!PoolInitInsertedBlocks.count(BB)) {
           BasicBlock::iterator It = BB->begin();
@@ -1452,7 +1452,7 @@ void PoolAllocate::InitializeAndDestroyPool(Function &F, const DSNode *Node,
             if (SplitCriticalEdge(BB, PI))
               // If the critical edge was split, *PI was invalidated
               goto TryAgainPred;
-            
+
             // Insert at the end of the predecessor, before the terminator.
             PoolInitPoints.push_back((*PI)->getTerminator());
             PoolInitInsertedBlocks.insert(*PI);
@@ -1463,19 +1463,19 @@ void PoolAllocate::InitializeAndDestroyPool(Function &F, const DSNode *Node,
       // not in the set, insert a destroy in this block.
       AllOrNoneInSet(succ_begin(BB), succ_end(BB), LiveBlocks,
                      AllIn, NoneIn);
-      
+
       if (NoneIn) {
         // Insert before the terminator.
         if (!PoolDestroyInsertedBlocks.count(BB)) {
           BasicBlock::iterator It = Term;
-          
+
           // Rewind to the first using instruction.
 #if 0
           while (!PoolUses.count(std::make_pair(PD, It)))
             DeleteIfIsPoolFree(It--, PD, PoolFrees);
           ++It;
 #endif
-     
+
           // Insert after the first using instruction
           PoolDestroyPoints.push_back(It);
           PoolDestroyInsertedBlocks.insert(BB);
@@ -1487,7 +1487,7 @@ void PoolAllocate::InitializeAndDestroyPool(Function &F, const DSNode *Node,
               !PoolDestroyInsertedBlocks.count(*SI)) {
             // If this edge is critical, split it.
             SplitCriticalEdge(BB, SI);
-            
+
             // Insert at entry to the successor, but after any PHI nodes.
             BasicBlock::iterator It = (*SI)->begin();
             while (isa<PHINode>(It)) ++It;
@@ -1562,7 +1562,7 @@ void PoolAllocate::InitializeAndDestroyPools(Function &F,
 
     assert(isa<AllocaInst>(PoolDescriptors[Node]) && "Why pool allocate this?");
     AllocaInst *PD = cast<AllocaInst>(PoolDescriptors[Node]);
-    
+
     //
     // FIXME: What is the purpose of the PoolUses and AllocasHandled code
     //        below?
@@ -1570,11 +1570,11 @@ void PoolAllocate::InitializeAndDestroyPools(Function &F,
     //assert(PoolUses.count(PD) && "Pool is not used, but is marked heap?!");
     if (!PoolUses.count(PD) && !PoolFrees.count(PD)) continue;
     if (!AllocasHandled.insert(PD).second) continue;
-    
+
     ++NumPools;
     if (!Node->isNodeCompletelyFolded())
       ++NumTSPools;
-    
+
     InitializeAndDestroyPool(F, Node, PoolDescriptors, PoolUses, PoolFrees);
   }
 }
@@ -1612,6 +1612,6 @@ unsigned PoolAllocate::getNumInitialPoolArguments(StringRef FuncName) {
         return RuntimeCheckEntries[Index].PoolArgc;
     }
   }
-  
+
   return 0;
 }
