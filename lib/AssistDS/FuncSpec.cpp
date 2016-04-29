@@ -9,7 +9,7 @@
 //
 // This pass clones functions that take constant function pointers as arguments
 // from some call sites. It changes those call sites to call cloned functions.
-// 
+//
 //===----------------------------------------------------------------------===//
 #define DEBUG_TYPE "funcspec"
 
@@ -55,7 +55,7 @@ bool FuncSpec::runOnModule(Module& M) {
       std::vector<unsigned> FPArgs;
       for (Function::arg_iterator ii = I->arg_begin(), ee = I->arg_end();
            ii != ee; ++ii) {
-        // check if this function has a FunctionType(or a pointer to) argument 
+        // check if this function has a FunctionType(or a pointer to) argument
         if (const PointerType* Ty = dyn_cast<PointerType>(ii->getType())) {
           if (isa<FunctionType>(Ty->getElementType())) {
             // Store the index of such an argument
@@ -66,14 +66,14 @@ bool FuncSpec::runOnModule(Module& M) {
           // Store the index of such an argument
           FPArgs.push_back(ii->getArgNo());
           DEBUG(errs() << "Eligible: " << I->getName().str() << "\n");
-        } 
+        }
       }
       // Now find all call sites that it is called from
       for(Value::user_iterator ui = I->user_begin(), ue = I->user_end();
           ui != ue; ++ui) {
         if (CallInst* CI = dyn_cast<CallInst>(*ui)) {
           // Check that it is the called value (and not an argument)
-          if(CI->getCalledValue()->stripPointerCasts() == I) {
+          if(CI->getCalledValue()->stripPointerCasts() == &*I) {
             std::vector<std::pair<unsigned, Constant*> > Consts;
             for (unsigned x = 0; x < FPArgs.size(); ++x)
               if (Constant* C = dyn_cast<Constant>(ui->getOperand(FPArgs.at(x) + 1))) {
@@ -85,7 +85,7 @@ bool FuncSpec::runOnModule(Module& M) {
               // If at least one of the arguments is a constant function,
               // we must clone the function.
               cloneSites[CI] = Consts;
-              toClone[std::make_pair(I, Consts)] = 0;
+              toClone[std::make_pair(&*I, Consts)] = 0;
             }
           }
         }

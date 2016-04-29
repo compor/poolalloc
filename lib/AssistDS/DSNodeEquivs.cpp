@@ -136,7 +136,7 @@ void DSNodeEquivs::equivNodesThroughCallsite(CallInst *CI) {
     // We can't merge through graphs that don't exist.
     if (!TDDS.hasDSGraph(Callee))
       continue;
-    
+
     DSGraph &CalleeGraph = *TDDS.getDSGraph(Callee);
     DSGraph::NodeMapTy NodeMap;
 
@@ -150,7 +150,7 @@ void DSNodeEquivs::equivNodesThroughCallsite(CallInst *CI) {
       if (isa<Constant>(*ArgIt))
         continue;
 
-      DSNodeHandle &CalleeArgNH = CalleeGraph.getNodeForValue(FArgIt);
+      DSNodeHandle &CalleeArgNH = CalleeGraph.getNodeForValue(&*FArgIt);
       DSNodeHandle &CSArgNH = Graph.getNodeForValue(*ArgIt);
       DSGraph::computeNodeMapping(CalleeArgNH, CSArgNH, NodeMap, false);
     }

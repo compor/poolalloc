@@ -40,7 +40,7 @@ namespace {
       if (Constant *C = dyn_cast<Constant>(*ui)) {
         if (ConstantExpr *CE = dyn_cast<ConstantExpr>(C)) {
           if (CE->getOpcode() == Instruction::BitCast) {
-            if(CE->getOperand(0) == F) {                    
+            if(CE->getOperand(0) == F) {
               for(Value::user_iterator uii = CE->user_begin(), uee = CE->user_end();
                   uii != uee; ) {
                 // check if it is ever used as a call (bitcast F to ...)()
@@ -60,7 +60,7 @@ namespace {
                               change = false;
                               break;
                             }
-                            else 
+                            else
                               continue;
                           }
                           if(ii1->getType() != CI->getOperand(arg_count1)->getType()) {
@@ -79,28 +79,28 @@ namespace {
                           }
                           FunctionType *NewFTy = FunctionType::
                             get(CI->getType(), TP, false);
-                          
+
                           Module *M = F->getParent();
                           Function *NewF = Function::Create(NewFTy,
                                                             GlobalValue::InternalLinkage,
                                                             "argbounce",
                                                             M);
                           std::vector<Value*> fargs;
-                          for(Function::arg_iterator ai = NewF->arg_begin(), 
+                          for(Function::arg_iterator ai = NewF->arg_begin(),
                               ae= NewF->arg_end(); ai != ae; ++ai) {
-                            fargs.push_back(ai);
+                            fargs.push_back(&*ai);
                             ai->setName("arg");
                           }
                           Value *CastedVal;
                           BasicBlock* entryBB = BasicBlock::
                             Create (M->getContext(), "entry", NewF);
-                       
+
                           Type *FromTy = fargs.at(arg_count)->getType();
                           if(FromTy->isPointerTy()) {
-                            CastedVal = CastInst::CreatePointerCast(fargs.at(arg_count), 
+                            CastedVal = CastInst::CreatePointerCast(fargs.at(arg_count),
                                                          type, "castd", entryBB);
                           } else {
-                            CastedVal = CastInst::CreateIntegerCast(fargs.at(arg_count), 
+                            CastedVal = CastInst::CreateIntegerCast(fargs.at(arg_count),
                                                                     type, false, "casted", entryBB);
                           }
 
@@ -109,15 +109,15 @@ namespace {
                               ae= NewF->arg_end(); ai != ae; ++ai) {
                             if(ai->getArgNo() == arg_count)
                               Args.push_back(CastedVal);
-                            else 
-                              Args.push_back(ai);
+                            else
+                              Args.push_back(&*ai);
                           }
 
-                          CallInst * CallI = CallInst::Create(F,Args, 
+                          CallInst * CallI = CallInst::Create(F,Args,
                                                               "", entryBB);
                           if(CallI->getType()->isVoidTy())
                             ReturnInst::Create(M->getContext(), entryBB);
-                          else 
+                          else
                             ReturnInst::Create(M->getContext(), CallI, entryBB);
 
                           CI->setCalledFunction(NewF);
@@ -142,7 +142,7 @@ namespace {
 
     bool runOnModule(Module& M) {
 
-      for (Module::iterator I = M.begin(); I != M.end(); ++I) 
+      for (Module::iterator I = M.begin(); I != M.end(); ++I)
         if (!I->isDeclaration() && !I->mayBeOverridden()) {
           if(I->getName().str() == "main")
             continue;
@@ -161,7 +161,7 @@ namespace {
             // if this argument is only used in ICMP instructions, we can
             // replace it.
             if(change) {
-              simplify(I, ii->getArgNo(), ii->getType()); 
+              simplify(&*I, ii->getArgNo(), ii->getType());
             }
           }
         }

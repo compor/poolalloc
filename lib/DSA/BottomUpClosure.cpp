@@ -65,7 +65,7 @@ bool BUDataStructures::runOnModuleInternal(Module& M) {
   //
   for (Module::iterator F = M.begin(); F != M.end(); ++F) {
     if (!(F->isDeclaration())){
-      getOrCreateGraph(F);
+      getOrCreateGraph(&*F);
     }
   }
 
@@ -101,7 +101,7 @@ bool BUDataStructures::runOnModuleInternal(Module& M) {
   //
   for (Module::iterator F = M.begin(); F != M.end(); ++F) {
     if (!(F->isDeclaration())){
-      DSGraph *Graph  = getOrCreateGraph(F);
+      DSGraph *Graph  = getOrCreateGraph(&*F);
       cloneGlobalsInto(Graph, DSGraph::DontCloneCallNodes |
                         DSGraph::DontCloneAuxCallNodes);
       Graph->buildCallGraph(callgraph, GlobalFunctionList, filterCallees);
@@ -116,7 +116,7 @@ bool BUDataStructures::runOnModuleInternal(Module& M) {
   // Once the correct flags have been calculated. Update the callgraph.
   for (Module::iterator F = M.begin(); F != M.end(); ++F) {
     if (!(F->isDeclaration())){
-      DSGraph *Graph = getOrCreateGraph(F);
+      DSGraph *Graph = getOrCreateGraph(&*F);
       Graph->buildCompleteCallGraph(callgraph,
                                     GlobalFunctionList, filterCallees);
     }
@@ -246,12 +246,12 @@ BUDataStructures::postOrderInline (Module & M) {
     if (InitList) {
       for (unsigned i = 0, e = InitList->getNumOperands(); i != e; ++i)
         if (ConstantStruct *CS = dyn_cast<ConstantStruct>(InitList->getOperand(i))) {
-          if (CS->getNumOperands() != 2) 
+          if (CS->getNumOperands() != 2)
             break; // Not array of 2-element structs.
           Constant *FP = CS->getOperand(1);
           if (FP->isNullValue())
             break;  // Found a null terminator, exit.
-   
+
           if (ConstantExpr *CE = dyn_cast<ConstantExpr>(FP))
             if (CE->isCast())
               FP = CE->getOperand(0);
@@ -274,7 +274,7 @@ BUDataStructures::postOrderInline (Module & M) {
       // record one global per DSNode.
       //
       formGlobalECs();
-      // propogte information calculated 
+      // propogte information calculated
       // from the globals graph to the other graphs.
       for (Module::iterator F = M.begin(); F != M.end(); ++F) {
         if (!(F->isDeclaration())){
@@ -291,7 +291,7 @@ BUDataStructures::postOrderInline (Module & M) {
       }
     }
   }
- 
+
   //
   // Start the post order traversal with the main() function.  If there is no
   // main() function, don't worry; we'll have a separate traversal for inlining
@@ -307,11 +307,11 @@ BUDataStructures::postOrderInline (Module & M) {
   // Calculate the graphs for any functions that are unreachable from main...
   //
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I)
-    if (!I->isDeclaration() && !ValMap.count(I)) {
+    if (!I->isDeclaration() && !ValMap.count(&*I)) {
       if (MainFunc)
         DEBUG(errs() << debugname << ": Function unreachable from main: "
         << I->getName() << "\n");
-      calculateGraphs(I, Stack, NextID, ValMap);     // Calculate all graphs.
+      calculateGraphs(&*I, Stack, NextID, ValMap);     // Calculate all graphs.
       CloneAuxIntoGlobal(getDSGraph(*I));
 
       // Mark this graph as processed.  Do this by finding all functions
@@ -486,7 +486,7 @@ BUDataStructures::calculateGraphs (const Function *F,
         for (DSGraph::retnodes_iterator I = NFG->retnodes_begin(),
                E = NFG->retnodes_end(); I != E; ++I)
           setDSGraph(*I->first, SCCGraph);
-        
+
         SCCGraph->spliceFrom(NFG);
         delete NFG;
         ++SCCSize;
@@ -710,7 +710,7 @@ void BUDataStructures::calculateGraph(DSGraph* Graph) {
 
   //
   // Update the callgraph with the new information that we have gleaned.
-  // NOTE : This must be called before removeDeadNodes, so that no 
+  // NOTE : This must be called before removeDeadNodes, so that no
   // information is lost due to deletion of DSCallNodes.
   Graph->buildCallGraph(callgraph, GlobalFunctionList, filterCallees);
 

@@ -69,7 +69,7 @@ static void MarkNodesWhichMustBePassedIn(DenseSet<const DSNode*> &MarkedNodes,
   if (!EPA->isEntryPoint(&F)) {
     for (Function::arg_iterator I = F.arg_begin(), E = F.arg_end();
             I != E; ++I) {
-      DSGraph::ScalarMapTy::iterator AI = G->getScalarMap().find(I);
+      DSGraph::ScalarMapTy::iterator AI = G->getScalarMap().find(&*I);
       if (AI != G->getScalarMap().end())
         if (DSNode * N = AI->second.getNode())
           N->markReachableNodes(MarkedNodes);
@@ -152,13 +152,20 @@ Function* RTAssociate::MakeFunctionClone(Function &F, FuncInfo& FI, DSGraph* G) 
   // Create the new function...
   Function *New = Function::Create(FuncTy, Function::InternalLinkage, F.getName());
   New->copyAttributesFrom(&F);
-  F.getParent()->getFunctionList().insert(&F, New);
+  auto Found = std::find_if(F.getParent()->getFunctionList().begin(),
+                            F.getParent()->getFunctionList().end(),
+                            [&](const Function &i) {
+                              if (&i == &F)
+                                return true;
+                              return false;
+                            });
+  F.getParent()->getFunctionList().insert(Found, New);
 
   // Set the rest of the new arguments names to be PDa<n> and add entries to the
   // pool descriptors map
   Function::arg_iterator NI = New->arg_begin();
   for (unsigned i = 0, e = FI.ArgNodes.size(); i != e; ++i, ++NI) {
-    FI.PoolDescriptors[FI.ArgNodes[i]] = CreateArgPool(FI.ArgNodes[i], NI);
+    FI.PoolDescriptors[FI.ArgNodes[i]] = CreateArgPool(FI.ArgNodes[i], &*NI);
     NI->setName("PDa");
   }
 
@@ -167,7 +174,7 @@ Function* RTAssociate::MakeFunctionClone(Function &F, FuncInfo& FI, DSGraph* G) 
   ValueToValueMapTy ValueMap;
   for (Function::arg_iterator I = F.arg_begin();
           NI != New->arg_end(); ++I, ++NI) {
-    ValueMap[I] = NI;
+    ValueMap[&*I] = &*NI;
     NI->setName(I->getName());
   }
 
@@ -239,25 +246,25 @@ bool RTAssociate::runOnModule(Module &M) {
   // arguments necessary for each function that is indirectly callable.
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I)
     if (!I->isDeclaration() && Graphs->hasDSGraph(*I)) {
-      FuncInfo & FI = makeFuncInfo(I, Graphs->getDSGraph(*I));
+      FuncInfo & FI = makeFuncInfo(&*I, Graphs->getDSGraph(*I));
       FindFunctionPoolArgs(*I, FI, EPA);
     }
 
   // Map that maps an original function to its clone
   std::map<Function*, Function*> FuncToCloneMap;
-  
+
   // Now clone a function using the pool arg list obtained in the previous
   // pass over the modules.  Loop over only the function initially in the
   // program, don't traverse newly added ones.  If the function needs new
   // arguments, make its clone.
   std::set<Function*> ClonedFunctions;
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I)
-    if (!I->isDeclaration() && !ClonedFunctions.count(I) &&
+    if (!I->isDeclaration() && !ClonedFunctions.count(&*I) &&
             Graphs->hasDSGraph(*I)) {
-      FuncInfo & FI = FunctionInfo.find(I)->second;
+      FuncInfo & FI = FunctionInfo.find(&*I)->second;
       if (Function* Clone = MakeFunctionClone(*I, FI, Graphs->getDSGraph(*I))) {
         assert(!EPA->isEntryPoint(I) && "Entry Point Cloned");
-        FuncToCloneMap[I] = Clone;
+        FuncToCloneMap[&*I] = Clone;
         ClonedFunctions.insert(Clone);
       }
     }
@@ -265,14 +272,14 @@ bool RTAssociate::runOnModule(Module &M) {
   // Now that all call targets are available, rewrite the function bodies of the
   // clones.
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I)
-    if (!I->isDeclaration() && !ClonedFunctions.count(I) &&
+    if (!I->isDeclaration() && !ClonedFunctions.count(&*I) &&
             Graphs->hasDSGraph(*I)) {
-      if (FuncToCloneMap.find(I) == FuncToCloneMap.end()) {
+      if (FuncToCloneMap.find(&*I) == FuncToCloneMap.end()) {
         // Function was changed inplace
         ProcessFunctionBody(*I, *I, Graphs->getDSGraph(*I),Graphs);
       } else {
         // Function was cloned
-        ProcessFunctionBody(*I, *FuncToCloneMap[I], Graphs->getDSGraph(*I),
+        ProcessFunctionBody(*I, *FuncToCloneMap[&*I], Graphs->getDSGraph(*I),
                             Graphs);
       }
     }
@@ -321,7 +328,7 @@ GlobalVariable* RTAssociate::CreateGlobalPool(const DSNode* D, Module* M) {
 
 AllocaInst* RTAssociate::CreateLocalPool(const DSNode* D, Function &F) {
   AllocaInst* AI = new AllocaInst(PoolDescType, 0, "LocalPool",
-                                  F.getEntryBlock().begin());
+                                  &*(F.getEntryBlock().begin()));
   ++NumPools;
   SpecialValues.insert(AI);
   return AI;
@@ -369,7 +376,7 @@ void RTAssociate::ProcessFunctionBody(Function &F, Function &NewF, DSGraph* G,
   // Loop over all of the nodes which are non-escaping, adding pool-allocatable
   // ones to the NodesToPA vector.
   for (DSGraph::node_iterator I = G->node_begin(), E = G->node_end(); I != E; ++I) {
-    DSNode *N = I;
+    DSNode *N = &*I;
     if (GlobalsGraphNodeMapping.count(N)) {
       // If it is a global pool, set up the pool descriptor appropriately.
       DSNode *GGN = GlobalsGraphNodeMapping[N].getNode();
@@ -541,7 +548,7 @@ void RTAssociate::replaceCall(CallSite CS, FuncInfo& FI, DataStructures* DS) {
   CallSite::arg_iterator AI = CS.arg_begin(), AE = CS.arg_end();
   for ( ; FAI != E && AI != AE; ++FAI, ++AI)
     if (!isa<Constant>(*AI))
-      DSGraph::computeNodeMapping(CalleeGraph->getNodeForValue(FAI),
+      DSGraph::computeNodeMapping(CalleeGraph->getNodeForValue(&*FAI),
                                   FI.getDSNodeHFor(*AI), NodeMapping, false);
 
   assert(AI == AE && "Varargs calls not handled yet!");

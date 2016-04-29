@@ -52,7 +52,7 @@ CompleteBUDataStructures::runOnModule (Module &M) {
 
   for (Module::iterator F = M.begin(); F != M.end(); ++F) {
     if (!(F->isDeclaration())){
-      getOrCreateGraph(F);
+      getOrCreateGraph(&*F);
     }
   }
 
@@ -60,7 +60,7 @@ CompleteBUDataStructures::runOnModule (Module &M) {
   formGlobalECs();
   for (Module::iterator F = M.begin(); F != M.end(); ++F) {
     if (!(F->isDeclaration())) {
-      if (DSGraph * Graph = getOrCreateGraph(F)) {
+      if (DSGraph * Graph = getOrCreateGraph(&*F)) {
         cloneIntoGlobals(Graph, DSGraph::DontCloneCallNodes |
                         DSGraph::DontCloneAuxCallNodes |
                         DSGraph::StripAllocaBit);
@@ -70,7 +70,7 @@ CompleteBUDataStructures::runOnModule (Module &M) {
 
   for (Module::iterator F = M.begin(); F != M.end(); ++F) {
     if (!(F->isDeclaration())) {
-      if (DSGraph * Graph = getOrCreateGraph(F)) {
+      if (DSGraph * Graph = getOrCreateGraph(&*F)) {
         cloneGlobalsInto(Graph, DSGraph::DontCloneCallNodes |
                         DSGraph::DontCloneAuxCallNodes);
       }
@@ -81,10 +81,10 @@ CompleteBUDataStructures::runOnModule (Module &M) {
   // Do bottom-up propagation.
   //
   bool modified = runOnModuleInternal(M);
-  
+
   callgraph.buildSCCs();
   callgraph.buildRoots();
-  
+
   return modified;
 }
 
@@ -121,7 +121,7 @@ CompleteBUDataStructures::buildIndirectFunctionSets (void) {
     // should have an entry in the GlobalsGraph
 
     Value *CalledValue = (*ii).getCalledValue()->stripPointerCasts();
-    
+
     bool isIndirect = (!isa<Function>(CalledValue));
     if (isIndirect) {
       DSCallGraph::callee_iterator csii = callgraph.callee_begin(*ii),
@@ -140,7 +140,7 @@ CompleteBUDataStructures::buildIndirectFunctionSets (void) {
           bool flag = false;
           for(; sccii != sccee; ++sccii) {
             flag |= SM.count(SM.getLeaderForGlobal(*sccii));
-          } 
+          }
           assert (flag &&
                   "Indirect function callee not in globals?");
          }
@@ -167,10 +167,10 @@ CompleteBUDataStructures::buildIndirectFunctionSets (void) {
     // this code is careful to handle callees not existing in the globals graph
     // In other words what we have here should be correct, but might be overkill
     // that we can trim down later as needed.
-    
+
     DSNodeHandle calleesNH;
-   
-    // When we build SCCs we remove any calls that are to functions in the 
+
+    // When we build SCCs we remove any calls that are to functions in the
     // same SCC. Hence, for every indirect call site we must assume that it
     // might call functions in its function's SCC that are address taken.
     const Function *F1 = (*ii).getInstruction()->getParent()->getParent();

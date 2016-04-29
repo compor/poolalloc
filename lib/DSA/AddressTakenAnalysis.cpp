@@ -10,7 +10,7 @@
 // This pass helps find which functions are address taken in a module.
 // Functions are considered to be address taken if they are either stored,
 // or passed as arguments to functions.
-// 
+//
 //
 //===----------------------------------------------------------------------===//
 
@@ -56,7 +56,7 @@ static bool isAddressTaken(Value* V) {
         return true;
       }
 
-      // FIXME: Can be more robust here for weak aliases that 
+      // FIXME: Can be more robust here for weak aliases that
       // are never used
     } else {
       llvm::CallSite CS(cast<Instruction>(U));
@@ -69,8 +69,9 @@ static bool isAddressTaken(Value* V) {
 
 bool AddressTakenAnalysis::runOnModule(llvm::Module& M) {
   for (Module::iterator FI = M.begin(), FE = M.end(); FI != FE; ++FI){
-    if(isAddressTaken(FI)) {
-      addressTakenFunctions.insert(FI);
+    auto &Func = *FI;
+    if(isAddressTaken(&Func)) {
+      addressTakenFunctions.insert(&Func);
     }
   }
 

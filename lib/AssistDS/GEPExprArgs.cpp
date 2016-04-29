@@ -8,7 +8,7 @@
 //===----------------------------------------------------------------------===//
 //
 // Identify GEPs used as arguments to call sites.
-// 
+//
 //===----------------------------------------------------------------------===//
 #define DEBUG_TYPE "gepexprargs"
 
@@ -64,7 +64,7 @@ bool GEPExprArgs::runOnModule(Module& M) {
           // or might be changed, ignore this call site.
           Function *F = CI->getCalledFunction();
 
-          if (!F || (F->isDeclaration() || F->mayBeOverridden())) 
+          if (!F || (F->isDeclaration() || F->mayBeOverridden()))
             continue;
           if(F->hasStructRetAttr())
             continue;
@@ -81,7 +81,7 @@ bool GEPExprArgs::runOnModule(Module& M) {
               break;
           }
 
-          // if no argument was a GEP operator to be changed 
+          // if no argument was a GEP operator to be changed
           if(ai == ae)
             continue;
 
@@ -101,7 +101,7 @@ bool GEPExprArgs::runOnModule(Module& M) {
           FunctionType *NewFTy = FunctionType::get(CI->getType(), TP, false);
           Function *NewF;
           numSimplified++;
-          if(numSimplified > 800) 
+          if(numSimplified > 800)
             return true;
 
           NewF = Function::Create(NewFTy,
@@ -116,7 +116,7 @@ bool GEPExprArgs::runOnModule(Module& M) {
           ValueToValueMapTy ValueMap;
 
           for (Function::arg_iterator II = F->arg_begin(); NI != NewF->arg_end(); ++II, ++NI) {
-            ValueMap[II] = NI;
+            ValueMap[&*II] = &*NI;
             NI->setName(II->getName());
             NI->addAttr(F->getAttributes().getParamAttributes(II->getArgNo() + 1));
           }
@@ -126,9 +126,9 @@ bool GEPExprArgs::runOnModule(Module& M) {
           SmallVector<ReturnInst*,100> Returns;
           CloneFunctionInto(NewF, F, ValueMap, false, Returns);
           std::vector<Value*> fargs;
-          for(Function::arg_iterator ai = NewF->arg_begin(), 
+          for(Function::arg_iterator ai = NewF->arg_begin(),
               ae= NewF->arg_end(); ai != ae; ++ai) {
-            fargs.push_back(ai);
+            fargs.push_back(&*ai);
           }
 
           NewF->setAttributes(NewF->getAttributes().addAttributes(
@@ -136,8 +136,8 @@ bool GEPExprArgs::runOnModule(Module& M) {
           //Get the point to insert the GEP instr.
           SmallVector<Value*, 8> Ops(CI->op_begin()+1, CI->op_end());
           Instruction *InsertPoint;
-          for (BasicBlock::iterator insrt = NewF->front().begin(); 
-               isa<AllocaInst>(InsertPoint = insrt); ++insrt) {;}
+          for (BasicBlock::iterator insrt = NewF->front().begin();
+               isa<AllocaInst>(InsertPoint = &*insrt); ++insrt) {;}
 
           NI = NewF->arg_begin();
           SmallVector<Value*, 8> Indices;
@@ -153,7 +153,7 @@ bool GEPExprArgs::runOnModule(Module& M) {
 
           // TODO: Should we use attrbuilder?
           AttributeSet NewCallPAL=AttributeSet();
-          
+
           // Get the initial attributes of the call
           AttributeSet CallPAL = CI->getAttributes();
           AttributeSet RAttrs = CallPAL.getRetAttributes();

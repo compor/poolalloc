@@ -64,7 +64,7 @@ bool BasicDataStructures::runOnModule(Module &M) {
     if (!F->isDeclaration()) {
       DSGraph* G = new DSGraph(GlobalECs, getDataLayout(), *TypeSS, GlobalsGraph);
       DSNode * Node = new DSNode(G);
-          
+
       if (!F->hasInternalLinkage())
         Node->setExternalMarker();
 
@@ -76,7 +76,7 @@ bool BasicDataStructures::runOnModule(Module &M) {
         }
       }
 
-      for (inst_iterator I = inst_begin(F), E = inst_end(F); I != E; ++I) {
+      for (inst_iterator I = inst_begin(*F), E = inst_end(*F); I != E; ++I) {
         G->getNodeForValue(&*I).mergeWith(Node);
       }
 
@@ -86,6 +86,6 @@ bool BasicDataStructures::runOnModule(Module &M) {
       setDSGraph(*F, G);
     }
   }
- 
+
   return false;
 }

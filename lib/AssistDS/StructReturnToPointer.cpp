@@ -54,7 +54,7 @@ bool StructRet::runOnModule(Module& M) {
       if(I->hasAddressTaken())
         continue;
       if(I->getReturnType()->isStructTy()) {
-        worklist.push_back(I);
+        worklist.push_back(&*I);
       }
     }
 
@@ -74,15 +74,15 @@ bool StructRet::runOnModule(Module& M) {
     FunctionType *NFTy = FunctionType::get(F->getReturnType(), TP, F->isVarArg());
 
     // Create the new function body and insert it into the module.
-    Function *NF = Function::Create(NFTy, 
-                                    GlobalValue::InternalLinkage, 
+    Function *NF = Function::Create(NFTy,
+                                    GlobalValue::InternalLinkage,
                                     F->getName(), &M);
     ValueToValueMapTy ValueMap;
     Function::arg_iterator NI = NF->arg_begin();
     NI->setName("ret");
     ++NI;
     for (Function::arg_iterator II = F->arg_begin(); II != F->arg_end(); ++II, ++NI) {
-      ValueMap[II] = NI;
+      ValueMap[&*II] = &*NI;
       NI->setName(II->getName());
       NI->addAttr(F->getAttributes().getParamAttributes(II->getArgNo() + 1));
     }
@@ -90,16 +90,16 @@ bool StructRet::runOnModule(Module& M) {
     SmallVector<ReturnInst*,100> Returns;
     CloneFunctionInto(NF, F, ValueMap, false, Returns);
     std::vector<Value*> fargs;
-    for(Function::arg_iterator ai = NF->arg_begin(), 
+    for(Function::arg_iterator ai = NF->arg_begin(),
         ae= NF->arg_end(); ai != ae; ++ai) {
-      fargs.push_back(ai);
+      fargs.push_back(&*ai);
     }
     NF->setAttributes(NF->getAttributes().addAttributes(
         M.getContext(), 0, F->getAttributes().getRetAttributes()));
     NF->setAttributes(NF->getAttributes().addAttributes(
         M.getContext(), ~0, F->getAttributes().getFnAttributes()));
-    
-    for (Function::iterator B = NF->begin(), FE = NF->end(); B != FE; ++B) {      
+
+    for (Function::iterator B = NF->begin(), FE = NF->end(); B != FE; ++B) {
       for (BasicBlock::iterator I = B->begin(), BE = B->end(); I != BE;) {
         ReturnInst * RI = dyn_cast<ReturnInst>(I++);
         if(!RI)
@@ -122,12 +122,12 @@ bool StructRet::runOnModule(Module& M) {
 
       //this should probably be done in a different manner
       AttributeSet NewCallPAL=AttributeSet();
-      
+
       // Get the initial attributes of the call
       AttributeSet CallPAL = CI->getAttributes();
       AttributeSet RAttrs = CallPAL.getRetAttributes();
       AttributeSet FnAttrs = CallPAL.getFnAttributes();
-      
+
       if (!RAttrs.isEmpty())
         NewCallPAL=NewCallPAL.addAttributes(F->getContext(),0, RAttrs);
 

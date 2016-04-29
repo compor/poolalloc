@@ -1,10 +1,10 @@
 //===-- PASimple.cpp - Simple Pool Allocation Pass ------------------------===//
-// 
+//
 //                     The LLVM Compiler Infrastructure
 //
 // This file was developed by the LLVM research group and is distributed under
 // the University of Illinois Open Source License. See LICENSE.TXT for details.
-// 
+//
 //===----------------------------------------------------------------------===//
 //
 // A minimal poolallocator that assignes all allocation to one common
@@ -99,7 +99,7 @@ FoldNodesInDSGraph (DSGraph & Graph) {
   DSGraph::node_iterator i;
   DSGraph::node_iterator e = Graph.node_end();
   for (i = Graph.node_begin(); i != e; ++i) {
-    DSNode * Node = i;
+    DSNode * Node = &*i;
     if (Node->isHeapNode())
       HeapNodes.push_back (DSNodeHandle(Node));
   }
@@ -276,7 +276,7 @@ PoolAllocateSimple::ProcessFunctionBodySimple (Function& F, const DataLayout & T
           Instruction *InsertPt = CI;
           Value *Size        = CS.getArgument(0);
           Value *Align       = CS.getArgument(1);
-          
+
           // Ensure the size and pointer arguments are of the correct type
           if (Size->getType() != Int32Type)
             Size = CastInst::CreateIntegerCast (Size,
@@ -295,7 +295,7 @@ PoolAllocateSimple::ProcessFunctionBodySimple (Function& F, const DataLayout & T
           // allows us to give the name to the new call to poolmemalign().
           //
           std::string Name = CI->getName(); CI->setName("");
-          
+
           //
           // Insert the call to poolalloc()
           //
@@ -322,7 +322,7 @@ PoolAllocateSimple::ProcessFunctionBodySimple (Function& F, const DataLayout & T
           FInfo.PoolDescriptors.insert(std::make_pair(Node,TheGlobalPool));
 
           // Mark the realloc as an instruction to delete
-          toDelete.push_back(ii);
+          toDelete.push_back(&*ii);
 
           // Insertion point - Instruction before which all our instructions go
           Instruction *InsertPt = CI;
@@ -367,7 +367,7 @@ PoolAllocateSimple::ProcessFunctionBodySimple (Function& F, const DataLayout & T
           FInfo.PoolDescriptors.insert(std::make_pair(Node,TheGlobalPool));
 
           // Mark the realloc as an instruction to delete
-          toDelete.push_back(ii);
+          toDelete.push_back(&*ii);
 
           // Insertion point - Instruction before which all our instructions go
           Instruction *InsertPt = CI;
@@ -413,7 +413,7 @@ PoolAllocateSimple::ProcessFunctionBodySimple (Function& F, const DataLayout & T
           FInfo.PoolDescriptors.insert(std::make_pair(Node,TheGlobalPool));
 
           // Mark the realloc as an instruction to delete
-          toDelete.push_back(ii);
+          toDelete.push_back(&*ii);
 
           // Insertion point - Instruction before which all our instructions go
           Instruction *InsertPt = CI;
@@ -447,10 +447,10 @@ PoolAllocateSimple::ProcessFunctionBodySimple (Function& F, const DataLayout & T
           CI->replaceAllUsesWith(Casted);
         } else if (CF && (CF->isDeclaration()) && ((CF->getName() == "free") || (CF->getName() == "cfree"))) {
           Type * VoidPtrTy = PointerType::getUnqual(Int8Type);
-          Value * FreedNode = castTo (CI->getOperand(0), VoidPtrTy, "cast", ii);
-          toDelete.push_back(ii);
+          Value * FreedNode = castTo (CI->getOperand(0), VoidPtrTy, "cast", &*ii);
+          toDelete.push_back(&*ii);
           Value* args[] = {TheGlobalPool, FreedNode};
-          CallInst::Create(PoolFree, args, "", ii);
+          CallInst::Create(PoolFree, args, "", &*ii);
         }
 
         //
@@ -461,7 +461,7 @@ PoolAllocateSimple::ProcessFunctionBodySimple (Function& F, const DataLayout & T
         if (CF) {
           unsigned Count = getNumInitialPoolArguments(CF->getName());
           Type * VoidPtrTy = PointerType::getUnqual(Int8Type);
-          Value * Pool = castTo (TheGlobalPool, VoidPtrTy, "pool", ii);
+          Value * Pool = castTo (TheGlobalPool, VoidPtrTy, "pool", &*ii);
           for (unsigned ArgIndex = 0; ArgIndex < Count; ArgIndex++ )
             CI->setArgOperand (ArgIndex, Pool);
         }

@@ -97,51 +97,51 @@ const struct {
   {"stat",       {NRET_YNARGS, NRET_NYARGS, NRET_NARGS, NRET_NARGS, false}},
   {"fstat",      {NRET_YNARGS, NRET_NYARGS, NRET_NARGS, NRET_NARGS, false}},
   {"lstat",      {NRET_YNARGS, NRET_NYARGS, NRET_NARGS, NRET_NARGS, false}},
-  
+
   {"getenv",     {NRET_YNARGS, YRET_NARGS,  NRET_NARGS, NRET_NARGS,  false}},
   {"getrusage",  {NRET_YNARGS, YRET_NYARGS, NRET_NARGS, NRET_NARGS,  false}},
   {"getrlimit",  {NRET_YNARGS, YRET_NYARGS, NRET_NARGS, NRET_NARGS,  false}},
   {"setrlimit",  {NRET_YARGS,  YRET_NARGS,  NRET_NARGS, NRET_NARGS,  false}},
   {"getcwd",     {NRET_NYARGS, YRET_YNARGS, NRET_NARGS, YRET_YNARGS, false}},
-  
+
   {"select",    {NRET_YARGS, YRET_YNARGS, NRET_NARGS, NRET_NARGS, false}},
   {"_setjmp",   {NRET_YARGS, YRET_YARGS,  NRET_NARGS, NRET_NARGS, false}},
   {"longjmp",   {NRET_YARGS, NRET_YARGS,  NRET_NARGS, NRET_NARGS, false}},
-  
+
   {"remove",    {NRET_YARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
   {"rename",    {NRET_YARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
   {"unlink",    {NRET_YARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
   {"fileno",    {NRET_YARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
   {"create",    {NRET_YARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
   {"write",     {NRET_YARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
-  {"read",      {NRET_YARGS, YRET_YARGS, NRET_NARGS, NRET_NARGS, false}}, 
+  {"read",      {NRET_YARGS, YRET_YARGS, NRET_NARGS, NRET_NARGS, false}},
   {"truncate",  {NRET_YARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
   {"open",      {NRET_YARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
- 
+
   {"chdir",     {NRET_YARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
   {"mkdir",     {NRET_YARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
   {"rmdir",     {NRET_YARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
-  
+
   {"chmod",     {NRET_YARGS, YRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
   {"fchmod",    {NRET_YARGS, YRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
- 
+
   {"kill",      {NRET_YARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
   {"pipe",      {NRET_YARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
-  
+
   {"execl",     {NRET_YARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
   {"execlp",    {NRET_YARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
   {"execle",    {NRET_YARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
   {"execv",     {NRET_YARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
   {"execvp",    {NRET_YARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
- 
-  {"time",      {NRET_YARGS,  YRET_NARGS, NRET_NARGS, NRET_NARGS, false}}, 
-  {"times",     {NRET_YARGS,  YRET_YARGS, NRET_NARGS, NRET_NARGS, false}}, 
-  {"ctime",     {NRET_YARGS,  YRET_NARGS, NRET_NARGS, NRET_NARGS, false}}, 
-  {"asctime",   {NRET_YARGS,  YRET_NARGS, NRET_NARGS, NRET_NARGS, false}}, 
-  {"utime",     {NRET_YARGS,  YRET_NARGS, NRET_NARGS, NRET_NARGS, false}}, 
-  {"localtime", {NRET_YARGS,  YRET_NARGS, NRET_NARGS, NRET_NARGS, false}}, 
-  {"gmtime",    {NRET_YARGS,  YRET_NARGS, NRET_NARGS, NRET_NARGS, false}}, 
-  {"ftime",     {NRET_YARGS,  NRET_YARGS, NRET_NARGS, NRET_NARGS, false}}, 
+
+  {"time",      {NRET_YARGS,  YRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
+  {"times",     {NRET_YARGS,  YRET_YARGS, NRET_NARGS, NRET_NARGS, false}},
+  {"ctime",     {NRET_YARGS,  YRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
+  {"asctime",   {NRET_YARGS,  YRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
+  {"utime",     {NRET_YARGS,  YRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
+  {"localtime", {NRET_YARGS,  YRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
+  {"gmtime",    {NRET_YARGS,  YRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
+  {"ftime",     {NRET_YARGS,  NRET_YARGS, NRET_NARGS, NRET_NARGS, false}},
 
   // printf not strictly true, %n could cause a write
   {"printf",    {NRET_YARGS,  NRET_NARGS,  NRET_NARGS, NRET_NARGS, false}},
@@ -159,20 +159,20 @@ const struct {
   {"valloc",    {NRET_NARGS, YRET_NARGS, YRET_NARGS,  NRET_NARGS, false}},
   {"realloc",   {NRET_NARGS, YRET_NARGS, YRET_YNARGS, YRET_YNARGS,false}},
   {"free",      {NRET_NARGS, NRET_NARGS, NRET_YNARGS, NRET_NARGS, false}},
- 
+
   {"strdup",    {NRET_YARGS, YRET_NARGS, YRET_NARGS, YRET_YARGS, false}},
   {"__strdup",  {NRET_YARGS, YRET_NARGS, YRET_NARGS, YRET_YARGS, false}},
   {"wcsdup",    {NRET_YARGS, YRET_NARGS, YRET_NARGS, YRET_YARGS, false}},
- 
+
   {"strlen",    {NRET_YARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
   {"wcslen",    {NRET_YARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
- 
+
   {"atoi",      {NRET_YARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
   {"atof",      {NRET_YARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
   {"atol",      {NRET_YARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
   {"atoll",     {NRET_YARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
   {"atoq",      {NRET_YARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
- 
+
   {"memcmp",      {NRET_YARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
   {"strcmp",      {NRET_YARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
   {"wcscmp",      {NRET_YARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
@@ -182,10 +182,10 @@ const struct {
   {"wcscasecmp",  {NRET_YARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
   {"strncasecmp", {NRET_YARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
   {"wcsncasecmp", {NRET_YARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
-  
+
   {"strcat",     {NRET_YARGS, YRET_YARGS, NRET_NARGS, YRET_YARGS, true}},
   {"strncat",    {NRET_YARGS, YRET_YARGS, NRET_NARGS, YRET_YARGS, true}},
-  
+
   {"strcpy",     {NRET_YARGS, YRET_YARGS, NRET_NARGS, YRET_YARGS, true}},
   {"stpcpy",     {NRET_YARGS, YRET_YARGS, NRET_NARGS, YRET_YARGS, true}},
   {"wcscpy",     {NRET_YARGS, YRET_YARGS, NRET_NARGS, YRET_YARGS, true}},
@@ -194,11 +194,11 @@ const struct {
   {"memcpy",     {NRET_YARGS, YRET_YARGS, NRET_NARGS, YRET_YARGS, true}},
   {"memccpy",    {NRET_YARGS, YRET_YARGS, NRET_NARGS, YRET_YARGS, true}},
   {"wmemccpy",   {NRET_YARGS, YRET_YARGS, NRET_NARGS, YRET_YARGS, true}},
-  {"memmove",    {NRET_YARGS, YRET_YARGS, NRET_NARGS, YRET_YARGS, true}}, 
-  
+  {"memmove",    {NRET_YARGS, YRET_YARGS, NRET_NARGS, YRET_YARGS, true}},
+
   {"bcopy",      {NRET_YARGS, NRET_YARGS, NRET_NARGS, NRET_YARGS, true}},
   {"bcmp",       {NRET_YARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, true}},
-  
+
   {"strerror",   {NRET_YARGS, YRET_NARGS, NRET_NARGS, NRET_NARGS,  true}},
   {"clearerr",   {NRET_YARGS, NRET_YARGS, NRET_NARGS, NRET_NARGS,  false}},
   {"strstr",     {NRET_YARGS, YRET_NARGS, NRET_NARGS, YRET_YNARGS, true}},
@@ -226,7 +226,7 @@ const struct {
   //{"posix_memalign",  {NRET_YARGS, YRET_YNARGS, NRET_NARGS,  NRET_NARGS, false}},
 
   {"perror",     {NRET_YARGS,  NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
-  
+
   {"feof",       {NRET_YARGS,  NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
   {"fflush",     {NRET_YARGS,  NRET_YARGS, NRET_NARGS, NRET_NARGS, false}},
   {"fpurge",     {NRET_YARGS,  NRET_YARGS, NRET_NARGS, NRET_NARGS, false}},
@@ -255,7 +255,7 @@ const struct {
   {"fputs",      {NRET_YARGS,  NRET_NYARGS, NRET_NARGS, NRET_NARGS,  false}},
   {"fputc",      {NRET_YARGS,  NRET_NYARGS, NRET_NARGS, NRET_NARGS,  false}},
 
-  
+
   // SAFECode Intrinsics
   {"pool_init_logfile",{NRET_YNARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
   {"poolcheck",        {NRET_NARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
@@ -360,7 +360,7 @@ const struct {
   // Important C I/O functions
   {"pool_fgets",      {NRET_NNYARGS, YRET_YNYARGS,  NRET_NARGS, YRET_YNARGS,  true}},
   {"pool_fgets_debug",{NRET_NNYARGS, YRET_YNYARGS,  NRET_NARGS, YRET_YNARGS,  true}},
-  
+
   // Type Checks
   {"trackArgvType",        {NRET_NARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS,   false}},
   {"trackEnvpType",        {NRET_NARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS,   false}},
@@ -556,7 +556,7 @@ StdLibDataStructures::runOnModule (Module &M) {
   //
   // Fetch the DSGraphs for all defined functions within the module.
   //
-  for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) 
+  for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I)
     if (!I->isDeclaration())
       getOrCreateGraph(&*I);
 
@@ -564,16 +564,16 @@ StdLibDataStructures::runOnModule (Module &M) {
   // Erase direct calls to functions that don't return a pointer and are marked
   // with the readnone annotation.
   //
-  for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) 
+  for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I)
     if (I->isDeclaration() && I->doesNotAccessMemory() &&
         !isa<PointerType>(I->getReturnType()))
-      eraseCallsTo(I);
+      eraseCallsTo(&*I);
 
   //
   // Erase direct calls to external functions that are not varargs, do not
   // return a pointer, and do not take pointers.
   //
-  for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) 
+  for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I)
     if (I->isDeclaration() && !I->isVarArg() &&
         !isa<PointerType>(I->getReturnType())) {
       bool hasPtr = false;
@@ -585,7 +585,7 @@ StdLibDataStructures::runOnModule (Module &M) {
           break;
         }
       if (!hasPtr)
-        eraseCallsTo(I);
+        eraseCallsTo(&*I);
     }
 
   if(!DisableStdLib) {
@@ -593,7 +593,7 @@ StdLibDataStructures::runOnModule (Module &M) {
     //
     // Scan through the function summaries and process functions by summary.
     //
-    for (int x = 0; recFuncs[x].name; ++x) 
+    for (int x = 0; recFuncs[x].name; ++x)
       if (Function* F = M.getFunction(recFuncs[x].name))
         if (F->isDeclaration()) {
           processFunction(x, F);
@@ -666,7 +666,7 @@ StdLibDataStructures::runOnModule (Module &M) {
   DEBUG(GlobalsGraph->AssertGraphOK());
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I)
     if (!I->isDeclaration()) {
-      DSGraph *Graph = getOrCreateGraph(I);
+      DSGraph *Graph = getOrCreateGraph(&*I);
       Graph->maskIncompleteMarkers();
       cloneGlobalsInto(Graph, DSGraph::DontCloneCallNodes |
                        DSGraph::DontCloneAuxCallNodes);
@@ -826,7 +826,7 @@ void StdLibDataStructures::processFunction(int x, Function *F) {
         }
       }
     } else if(ConstantExpr *CE = dyn_cast<ConstantExpr>(*ii)) {
-      if(CE->isCast()) 
+      if(CE->isCast())
         for (Value::user_iterator ci = CE->user_begin(), ce = CE->user_end();
              ci != ce; ++ci) {
 

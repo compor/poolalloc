@@ -6,7 +6,7 @@
 // License. See LICENSE.TXT for details.
 //
 //===----------------------------------------------------------------------===//
-// Convert 
+// Convert
 // call(bitcast (.., T1 arg, ...)F to(..., T2 arg, ...))(..., T2 val, ...)
 // to
 // val1 = bitcast T2 val to T1
@@ -63,28 +63,28 @@ bool ArgCast::runOnModule(Module& M) {
         continue;
       if (CE->getOpcode() != Instruction::BitCast)
         continue;
-      if(CE->getOperand(0) != I)
+      if(CE->getOperand(0) != &*I)
         continue;
       const PointerType *PTy = dyn_cast<PointerType>(CE->getType());
       if (!PTy)
         continue;
       const Type *ETy = PTy->getElementType();
-      const FunctionType *FTy  = dyn_cast<FunctionType>(ETy); 
+      const FunctionType *FTy  = dyn_cast<FunctionType>(ETy);
       if(!FTy)
         continue;
       // casting to a varargs funtion
       // or function with same number of arguments
       // possibly varying types of arguments
-      
+
       if(FTy->getNumParams() != I->arg_size() && !FTy->isVarArg())
         continue;
       for(Value::user_iterator uii = CE->user_begin(),
           uee = CE->user_end(); uii != uee; ++uii) {
-        // Find all uses of the casted value, and check if it is 
+        // Find all uses of the casted value, and check if it is
         // used in a Call Instruction
         if (CallInst* CI = dyn_cast<CallInst>(*uii)) {
           // Check that it is the called value, and not an argument
-          if(CI->getCalledValue() != CE) 
+          if(CI->getCalledValue() != CE)
             continue;
           // Check that the number of arguments passed, and expected
           // by the function are the same.
@@ -121,37 +121,37 @@ bool ArgCast::runOnModule(Module& M) {
         Args.push_back(CI->getOperand(i+1));
       }
       else if(ArgType->isPointerTy() && FormalType->isPointerTy()) {
-        CastInst *CastI = CastInst::CreatePointerCast(CI->getOperand(i+1), 
+        CastInst *CastI = CastInst::CreatePointerCast(CI->getOperand(i+1),
                                                       FormalType, "", CI);
         Args.push_back(CastI);
       } else if (ArgType->isIntegerTy() && FormalType->isIntegerTy()) {
         unsigned SrcBits = ArgType->getScalarSizeInBits();
         unsigned DstBits = FormalType->getScalarSizeInBits();
         if(SrcBits > DstBits) {
-          CastInst *CastI = CastInst::CreateIntegerCast(CI->getOperand(i+1), 
+          CastInst *CastI = CastInst::CreateIntegerCast(CI->getOperand(i+1),
                                                         FormalType, true, "", CI);
           Args.push_back(CastI);
         } else {
           if (F->getAttributes().hasAttribute(i+1, Attribute::SExt)) {
-            CastInst *CastI = CastInst::CreateIntegerCast(CI->getOperand(i+1), 
+            CastInst *CastI = CastInst::CreateIntegerCast(CI->getOperand(i+1),
                                                           FormalType, true, "", CI);
             Args.push_back(CastI);
           } else if (F->getAttributes().hasAttribute(i+1, Attribute::ZExt)) {
-            CastInst *CastI = CastInst::CreateIntegerCast(CI->getOperand(i+1), 
+            CastInst *CastI = CastInst::CreateIntegerCast(CI->getOperand(i+1),
                                                           FormalType, false, "", CI);
             Args.push_back(CastI);
           } else {
             // Use ZExt in default case.
             // Derived from InstCombine. Also, the only reason this should happen
             // is mismatched prototypes.
-            // Seen in case of integer constants which get interpreted as i32, 
+            // Seen in case of integer constants which get interpreted as i32,
             // even if being used as i64.
             // TODO: is this correct?
-            CastInst *CastI = CastInst::CreateIntegerCast(CI->getOperand(i+1), 
+            CastInst *CastI = CastInst::CreateIntegerCast(CI->getOperand(i+1),
                                                           FormalType, false, "", CI);
             Args.push_back(CastI);
-          } 
-        } 
+          }
+        }
       } else {
         DEBUG(ArgType->dump());
         DEBUG(FormalType->dump());
@@ -183,7 +183,7 @@ bool ArgCast::runOnModule(Module& M) {
           RetCast = CastInst::CreateIntegerCast(CINew, CI->getType(), false, "", CI);
         else if(CI->getType()->isIntOrIntVectorTy() && CINew->getType()->isPointerTy())
           RetCast = CastInst::CreatePointerCast(CINew, CI->getType(), "", CI);
-        else if(CI->getType()->isPointerTy() && CINew->getType()->isIntOrIntVectorTy()) 
+        else if(CI->getType()->isPointerTy() && CINew->getType()->isIntOrIntVectorTy())
           RetCast = new IntToPtrInst(CINew, CI->getType(), "", CI);
         else {
           // TODO: I'm not sure what right behavior is here, but this case should be handled.

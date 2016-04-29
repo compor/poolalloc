@@ -46,7 +46,7 @@ namespace {
   STATISTIC (NumTrivialDNE                    , "Number of nodes trivially removed");
   STATISTIC (NumTrivialGlobalDNE              , "Number of globals trivially removed");
   STATISTIC (NumFiltered                      , "Number of calls filtered");
-  
+
   static cl::opt<bool> noDSACallConv("dsa-no-filter-callcc",
          cl::desc("Don't filter call sites based on calling convention."),
          cl::Hidden,
@@ -71,7 +71,7 @@ extern cl::opt<bool> TypeInferenceOptimize;
 static bool shouldHaveNodeForValue(const Value *V) {
   // Peer through casts
   V = V->stripPointerCasts();
-  
+
   // Only pointers get nodes
   if (!isa<PointerType>(V->getType())) return false;
 
@@ -201,7 +201,7 @@ void DSGraph::cloneInto( DSGraph* G, unsigned CloneFlags) {
            "Forward nodes shouldn't be in node list!");
     DSNode *New = new DSNode(*I, this);
     New->maskNodeTypes(~BitsToClear);
-    OldNodeMap[I] = New;
+    OldNodeMap[&*I] = New;
   }
 
   // Rewrite the links in the new nodes to point into the current graph now.
@@ -299,7 +299,7 @@ void DSGraph::getFunctionArgumentsForCall(const Function *F,
   for (Function::const_arg_iterator AI = F->arg_begin(), E = F->arg_end();
        AI != E; ++AI)
     if (isa<PointerType>(AI->getType())) {
-      Args.push_back(getNodeForValue(AI));
+      Args.push_back(getNodeForValue(&*AI));
       assert(!Args.back().isNull() && "Pointer argument w/o scalarmap entry!?");
     }
 }
@@ -530,7 +530,7 @@ DSCallSite DSGraph::getCallSiteForArguments(const Function &F) const {
 
   for (Function::const_arg_iterator I = F.arg_begin(), E = F.arg_end(); I != E; ++I)
     if (isa<PointerType>(I->getType()))
-      Args.push_back(getNodeForValue(I));
+      Args.push_back(getNodeForValue(&*I));
 
   return DSCallSite(CallSite(), getReturnNodeFor(F), getVANodeFor(F), &F, Args);
 }
@@ -548,7 +548,7 @@ DSCallSite DSGraph::getDSCallSiteForCallSite(CallSite CS) const {
   //of a better way.  For now, this assumption is known limitation.
   const FunctionType *CalleeFuncType = DSCallSite::FunctionTypeOfCallSite(CS);
   int NumFixedArgs = CalleeFuncType->getNumParams();
-  
+
   // Sanity check--this really, really shouldn't happen
   if (!CalleeFuncType->isVarArg())
     assert(CS.arg_size() == static_cast<unsigned>(NumFixedArgs) &&
@@ -633,7 +633,7 @@ void DSGraph::markIncompleteNodes(unsigned Flags) {
       for (Function::const_arg_iterator I = F.arg_begin(), E = F.arg_end();
            I != E; ++I)
         if (isa<PointerType>(I->getType()))
-          markIncompleteNode(getNodeForValue(I).getNode());
+          markIncompleteNode(getNodeForValue(&*I).getNode());
       markIncompleteNode(FI->second.getNode());
     }
     // Mark all vanodes as incomplete (they are also arguments)
@@ -653,7 +653,7 @@ void DSGraph::markIncompleteNodes(unsigned Flags) {
       markIncomplete(*I);
 
   // Mark all global nodes as incomplete that aren't initialized and constant.
-  if ((Flags & DSGraph::IgnoreGlobals) == 0) 
+  if ((Flags & DSGraph::IgnoreGlobals) == 0)
     for (DSScalarMap::global_iterator I = ScalarMap.global_begin(),
         E = ScalarMap.global_end(); I != E; ++I)
       if (const GlobalVariable *GV = dyn_cast<GlobalVariable>(*I)) {
@@ -666,7 +666,7 @@ void DSGraph::markIncompleteNodes(unsigned Flags) {
   if (Flags & DSGraph::MarkVAStart) {
     for (node_iterator i=node_begin(); i != node_end(); ++i) {
       if (i->isVAStartNode())
-        markIncompleteNode(i);
+        markIncompleteNode(&*i);
     }
   }
 }
@@ -686,7 +686,7 @@ static void markExternalNode(DSNode *N, DenseSet<DSNode *> & processedNodes) {
 
   // Actually mark the node
   N->setExternalMarker();
-  
+
   // FIXME: Should we 'collapse' the node as well?
 
   // Recursively process children...
@@ -764,7 +764,7 @@ void DSGraph::computeExternalFlags(unsigned Flags) {
             continue;
         }
         if (isa<PointerType>(I->getType()))
-          markExternalNode(getNodeForValue(I).getNode(), processedNodes);
+          markExternalNode(getNodeForValue(&*I).getNode(), processedNodes);
       }
       markExternalNode(FI->second.getNode(), processedNodes);
       markExternalNode(getVANodeFor(F).getNode(), processedNodes);
@@ -1071,7 +1071,7 @@ void DSGraph::removeDeadNodes(unsigned Flags) {
   // will be correctly computed when rematerializing nodes into the functions.
   //
   // This code merges information learned about the globals in 'this' graph
-  // back into the globals graph, before it deletes any such global nodes, 
+  // back into the globals graph, before it deletes any such global nodes,
   // (with some new information possibly) from 'this' current function graph.
   ReachabilityCloner GGCloner(GlobalsGraph, this, DSGraph::StripAllocaBit |
                               DSGraph::StripIncompleteBit);
@@ -1170,7 +1170,8 @@ void DSGraph::removeDeadNodes(unsigned Flags) {
   std::vector<DSNode*> DeadNodes;
   DeadNodes.reserve(Nodes.size());
   for (NodeListTy::iterator NI = Nodes.begin(), E = Nodes.end(); NI != E;) {
-    DSNode *N = NI++;
+    DSNode *N = &*NI;
+    NI++;
     assert(!N->isForwarding() && "Forwarded node in nodes list?");
 
     if (!Alive.count(N)) {
@@ -1308,7 +1309,7 @@ void DSGraph::computeNodeMapping(const DSNodeHandle &NH1,
   // DSNodeHandle is mapped to the second DSNodeHandle.
   //
   // FIXME: AA:I am not sure what the right mapping for the
-  // following case is. I believe we do not need to create any 
+  // following case is. I believe we do not need to create any
   // new mapping.
   //assert(((signed int)(NH2.getOffset()-NH1.getOffset())>=0) && " Underflow error ");
   if(NH2.getOffset() >= NH1.getOffset()) {
@@ -1534,7 +1535,7 @@ llvm::functionIsCallable (ImmutableCallSite CS, const Function* F) {
         return false;
     }
   }
-  
+
   if (!noDSACallNumArgs) {
     if(CS.arg_size() < F->arg_size()) {
       return false;
@@ -1556,7 +1557,7 @@ llvm::functionIsCallable (ImmutableCallSite CS, const Function* F) {
 //  of function calls that can be inferred from the unresolved call sites
 //  within the DSGraph.
 //
-//  The parameter GlobalFunctionList, is a list of all the address taken 
+//  The parameter GlobalFunctionList, is a list of all the address taken
 //  functions in the module. This is used as the list of targets when a callee
 //  node is Incomplete.
 //
@@ -1618,7 +1619,7 @@ void DSGraph::buildCallGraph(DSCallGraph& DCG, std::vector<const Function*>& Glo
   }
 }
 
-void DSGraph::buildCompleteCallGraph(DSCallGraph& DCG, 
+void DSGraph::buildCompleteCallGraph(DSCallGraph& DCG,
                                      std::vector<const Function*>& GlobalFunctionList, bool filter) const {
   //
   // Get the list of unresolved call sites.

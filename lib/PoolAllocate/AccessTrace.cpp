@@ -1,10 +1,10 @@
 //===-- PoolAccessTrace.cpp - Build trace of loads ------------------------===//
-// 
+//
 //                     The LLVM Compiler Infrastructure
 //
 // This file was developed by the LLVM research group and is distributed under
 // the University of Illinois Open Source License. See LICENSE.TXT for details.
-// 
+//
 //===----------------------------------------------------------------------===//
 //
 // This file implements the -poolaccesstrace pass.
@@ -45,7 +45,7 @@ namespace {
 
   private:
     void InitializeLibraryFunctions(Module &M);
-    void InstrumentAccess(Instruction *I, Value *Ptr, 
+    void InstrumentAccess(Instruction *I, Value *Ptr,
                           PA::FuncInfo *FI, DSGraph* DSG);
   };
 
@@ -73,7 +73,7 @@ void PoolAccessTrace::InitializeLibraryFunctions(Module &M) {
                                             VoidPtrTy, VoidPtrTy, NULL);
 }
 
-void PoolAccessTrace::InstrumentAccess(Instruction *I, Value *Ptr, 
+void PoolAccessTrace::InstrumentAccess(Instruction *I, Value *Ptr,
                                        PA::FuncInfo *FI, DSGraph* DSG) {
   // Don't trace loads of globals or the stack.
   if (isa<Constant>(Ptr) || isa<AllocaInst>(Ptr)) return;
@@ -110,7 +110,7 @@ bool PoolAccessTrace::runOnModule(Module &M) {
   Function *MainFunc = M.getFunction("main");
   if (MainFunc && !MainFunc->isDeclaration())
     // Insert a call to the library init function into the beginning of main.
-    CallInst::Create (AccessTraceInitFn, "", MainFunc->begin()->begin());
+    CallInst::Create (AccessTraceInitFn, "", &*(MainFunc->begin()->begin()));
 
   // Look at all of the loads in the program.
   for (Module::iterator F = M.begin(), E = M.end(); F != E; ++F) {
@@ -131,7 +131,7 @@ bool PoolAccessTrace::runOnModule(Module &M) {
     for (Function::iterator BB = F->begin(), E = F->end(); BB != E; ++BB)
       for (BasicBlock::iterator I = BB->begin(), E = BB->end(); I != E; ++I)
         if (LoadInst *LI = dyn_cast<LoadInst>(I))
-          InstrumentAccess(LI, LI->getOperand(0), FI, DSG);
+          InstrumentAccess(LI, LI->getOperand(0), &*FI, DSG);
   }
   return true;
 }

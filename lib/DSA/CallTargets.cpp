@@ -57,7 +57,7 @@ void CallTargetFinder<dsa>::findIndTargets(Module &M)
       for (Function::iterator F = I->begin(), FE = I->end(); F != FE; ++F)
         for (BasicBlock::iterator B = F->begin(), BE = F->end(); B != BE; ++B)
           if (isa<CallInst>(B) || isa<InvokeInst>(B)) {
-            CallSite cs(B);
+            CallSite cs(&*B);
             AllSites.push_back(cs);
             Function* CF = cs.getCalledFunction();
 
@@ -96,7 +96,7 @@ void CallTargetFinder<dsa>::findIndTargets(Module &M)
                 }
                 const Function *F1 = (cs).getInstruction()->getParent()->getParent();
                 F1 = callgraph.sccLeader(&*F1);
-                
+
                 DSCallGraph::scc_iterator sccii = callgraph.scc_begin(F1),
                   sccee = callgraph.scc_end(F1);
                 for(;sccii != sccee; ++sccii) {
@@ -113,7 +113,7 @@ void CallTargetFinder<dsa>::findIndTargets(Module &M)
                 if (!N->isIncompleteNode() && !N->isExternalNode() && IndMap[cs].size()) {
                   CompleteSites.insert(cs);
                   ++CompleteInd;
-                } 
+                }
                 if (!N->isIncompleteNode() && !N->isExternalNode() && !IndMap[cs].size()) {
                   ++CompleteEmpty;
                   DEBUG(errs() << "Call site empty: '"

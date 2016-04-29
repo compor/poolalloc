@@ -279,7 +279,7 @@ bool PoolAllocate::runOnModule(Module &M) {
   std::vector<Function *> FunctionsToClone;
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
     if (!I->isDeclaration() && Graphs->hasDSGraph(*I)) {
-      FunctionsToClone.push_back (I);
+      FunctionsToClone.push_back (&*I);
     }
   }
 
@@ -322,9 +322,9 @@ bool PoolAllocate::runOnModule(Module &M) {
   // FIXME: Use utility methods to make this code more readable!
   //
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
-    if (!I->isDeclaration() && !ClonedFunctions.count(I) &&
+    if (!I->isDeclaration() && !ClonedFunctions.count(&*I) &&
         Graphs->hasDSGraph(*I)) {
-      std::map<Function*, Function*>::iterator FI = FuncMap.find(I);
+      std::map<Function*, Function*>::iterator FI = FuncMap.find(&*I);
       ProcessFunctionBody(*I, FI != FuncMap.end() ? *FI->second : *I);
     }
   }
@@ -640,7 +640,7 @@ GetNodesReachableFromGlobals (DSGraph* G,
     //
     DSGraph::node_iterator ni = G->node_begin();
     for (; ni != G->node_end(); ++ni) {
-      DSNode * N = ni;
+      DSNode * N = &*ni;
       if (NodesFromGlobals.count (NodeMap[N].getNode()))
         NodesFromGlobals.insert (N);
     }
@@ -752,9 +752,9 @@ PoolAllocate::FindPoolArgs (Module & M) {
   //
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I) {
     if (!I->isDeclaration() && Graphs->hasDSGraph(*I)) {
-      if (FunctionInfo.find (I) == FunctionInfo.end()) {
+      if (FunctionInfo.find (&*I) == FunctionInfo.end()) {
         std::vector<const Function *> Functions;
-        Functions.push_back(I);
+        Functions.push_back(&*I);
         FindFunctionPoolArgs (Functions);
       }
     }
@@ -937,7 +937,14 @@ PoolAllocate::MakeFunctionClone (Function & F) {
   // Create the new function...
   //
   Function *New = Function::Create(FuncTy, Function::InternalLinkage, F.getName().str() + "_clone");
-  F.getParent()->getFunctionList().insert(&F, New);
+  auto Found = std::find_if(F.getParent()->getFunctionList().begin(),
+                            F.getParent()->getFunctionList().end(),
+                            [&](const Function &i) {
+                              if (&i == &F)
+                                return true;
+                              return false;
+                            });
+  F.getParent()->getFunctionList().insert(Found, New);
   CloneToOrigMap[New] = &F;   // Remember original function.
 
   // Set the rest of the new arguments names to be PDa<n> and add entries to the
@@ -946,7 +953,7 @@ PoolAllocate::MakeFunctionClone (Function & F) {
   Function::arg_iterator NI = New->arg_begin();
   for (unsigned i = 0, e = FI.ArgNodes.size(); i != e; ++i, ++NI) {
     NI->setName("PDa");
-    PoolDescriptors[FI.ArgNodes[i]] = NI;
+    PoolDescriptors[FI.ArgNodes[i]] = &*NI;
   }
 
   //
@@ -965,7 +972,7 @@ PoolAllocate::MakeFunctionClone (Function & F) {
 
   for (Function::arg_iterator I = F.arg_begin();
        NI != New->arg_end(); ++I, ++NI) {
-    ValueMap[I] = NI;
+    ValueMap[&*I] = &*NI;
     NI->setName(I->getName());
   }
 
@@ -1052,7 +1059,7 @@ bool PoolAllocate::SetupGlobalPools(Module &M) {
     Heuristic::OnePool &Pool = ResultPools[i];
     Value *PoolDesc = Pool.PoolDesc;
     if (PoolDesc == 0) {
-      PoolDesc = CreateGlobalPool(Pool.PoolSize, Pool.PoolAlignment, "GlobalPool", InsertPt);
+      PoolDesc = CreateGlobalPool(Pool.PoolSize, Pool.PoolAlignment, "GlobalPool", &*InsertPt);
 
       if (Pool.NodesInPool.size() == 1 &&
           !Pool.NodesInPool[0]->isNodeCompletelyFolded())
@@ -1089,17 +1096,21 @@ GlobalVariable *PoolAllocate::CreateGlobalPool(unsigned RecSize, unsigned Align,
   GNode->setModifiedMarker()->setReadMarker();
 
   BasicBlock::iterator InsertPt;
-  if (IPHint)
-    InsertPt = IPHint;
-  else {
-    InsertPt = GlobalPoolCtor->getEntryBlock().begin();
+  if (!IPHint){
+    BasicBlock::iterator InsertPt = GlobalPoolCtor->getEntryBlock().begin();
     while (isa<AllocaInst>(InsertPt)) ++InsertPt;
   }
+
+  Instruction *InsertPtInst;
+  if (IPHint)
+    InsertPtInst = IPHint;
+  else
+    InsertPtInst = &*InsertPt;
 
   Value *ElSize = ConstantInt::get(Int32Type, RecSize);
   Value *AlignV = ConstantInt::get(Int32Type, Align);
   Value* Opts[3] = {GV, ElSize, AlignV};
-  CallInst::Create(PoolInit, Opts, "", InsertPt);
+  CallInst::Create(PoolInit, Opts, "", InsertPtInst);
   ++NumPools;
   return GV;
 }
@@ -1146,7 +1157,7 @@ PoolAllocate::CreatePools (Function &F, DSGraph* DSG,
       // later.
       //
       if (!IsMain) {
-        PoolDesc = new AllocaInst(PoolDescType, 0, "PD", InsertPoint);
+        PoolDesc = new AllocaInst(PoolDescType, 0, "PD", &*InsertPoint);
 
 #if 0
         //
@@ -1162,7 +1173,7 @@ PoolAllocate::CreatePools (Function &F, DSGraph* DSG,
 #endif
       } else {
         PoolDesc = CreateGlobalPool(Pool.PoolSize, Pool.PoolAlignment,
-                                    "PoolForMain", InsertPoint);
+                                    "PoolForMain", &*InsertPoint);
 
         // Add the global node to main's graph.
         DSNode *NewNode = DSG->addObjectToGraph(PoolDesc);
@@ -1226,7 +1237,7 @@ PoolAllocate::ProcessFunctionBody(Function &F, Function &NewF) {
        I != E;
        ++I){
     // Get the global DSNode matching this DSNode
-    DSNode * N = I;
+    DSNode * N = &*I;
 
     // If the local DSNode was assigned a global pool, update the pool
     // descriptors for the function
@@ -1406,7 +1417,7 @@ void PoolAllocate::InitializeAndDestroyPool(Function &F, const DSNode *Node,
     // Insert poolinit calls after all of the allocas...
     Instruction *InsertPoint;
     for (BasicBlock::iterator I = F.front().begin();
-         isa<AllocaInst>(InsertPoint = I); ++I)
+         isa<AllocaInst>(InsertPoint = &*I); ++I)
       /*empty*/;
     PoolInitPoints.push_back(InsertPoint);
 
@@ -1441,7 +1452,7 @@ void PoolAllocate::InitializeAndDestroyPool(Function &F, const DSNode *Node,
             // across.
             DeleteIfIsPoolFree(It++, PD, PoolFrees);
 #endif
-          PoolInitPoints.push_back(It);
+          PoolInitPoints.push_back(&*It);
           PoolInitInsertedBlocks.insert(BB);
         }
       } else if (!AllIn) {
@@ -1467,7 +1478,7 @@ void PoolAllocate::InitializeAndDestroyPool(Function &F, const DSNode *Node,
       if (NoneIn) {
         // Insert before the terminator.
         if (!PoolDestroyInsertedBlocks.count(BB)) {
-          BasicBlock::iterator It = Term;
+          //BasicBlock::iterator It = Term;
 
           // Rewind to the first using instruction.
 #if 0
@@ -1477,7 +1488,7 @@ void PoolAllocate::InitializeAndDestroyPool(Function &F, const DSNode *Node,
 #endif
 
           // Insert after the first using instruction
-          PoolDestroyPoints.push_back(It);
+          PoolDestroyPoints.push_back(Term);
           PoolDestroyInsertedBlocks.insert(BB);
         }
       } else if (!AllIn) {
@@ -1491,7 +1502,7 @@ void PoolAllocate::InitializeAndDestroyPool(Function &F, const DSNode *Node,
             // Insert at entry to the successor, but after any PHI nodes.
             BasicBlock::iterator It = (*SI)->begin();
             while (isa<PHINode>(It)) ++It;
-            PoolDestroyPoints.push_back(It);
+            PoolDestroyPoints.push_back(&*It);
             PoolDestroyInsertedBlocks.insert(*SI);
           }
       }

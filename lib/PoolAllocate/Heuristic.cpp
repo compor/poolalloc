@@ -1,10 +1,10 @@
 //===-- Heuristic.cpp - Interface to PA heuristics ------------------------===//
-// 
+//
 //                     The LLVM Compiler Infrastructure
 //
 // This file was developed by the LLVM research group and is distributed under
 // the University of Illinois Open Source License. See LICENSE.TXT for details.
-// 
+//
 //===----------------------------------------------------------------------===//
 //
 // This implements the various pool allocation heuristics.
@@ -257,10 +257,10 @@ GetNodesReachableFromGlobals (DSGraph* G,
     // Unknown nodes could be anything.
     //
     const DSNode *tmp = *Last;
-    if (!(tmp->isHeapNode())) 
+    if (!(tmp->isHeapNode()))
       toRemove.push_back (tmp);
   }
- 
+
   //
   // Remove all globally reachable DSNodes which do not require pools.
   //
@@ -283,7 +283,7 @@ GetNodesReachableFromGlobals (DSGraph* G,
 
     //
     // Scan through all DSNodes in the local graph.  If a local DSNode has a
-    // corresponding DSNode in the globals graph that is reachable from a 
+    // corresponding DSNode in the globals graph that is reachable from a
     // global, then add the local DSNode to the set of DSNodes reachable from a
     // global.
     //
@@ -292,7 +292,7 @@ GetNodesReachableFromGlobals (DSGraph* G,
     //
     DSGraph::node_iterator ni = G->node_begin();
     for (; ni != G->node_end(); ++ni) {
-      DSNode * N = ni;
+      DSNode * N = &*ni;
       if (NodesFromGlobals.count (NodeMap[N].getNode()))
         NodesFromGlobals.insert (N);
     }
@@ -415,7 +415,7 @@ Heuristic::getLocalPoolNodes (const Function & F, DSNodeList_t & Nodes) {
        I != E;
        ++I){
     // Get the DSNode and, if applicable, its mirror in the globals graph
-    DSNode * N   = I;
+    DSNode * N   = &*I;
     DSNode * GGN = GlobalsGraphNodeMapping[N].getNode();
 
     //
@@ -456,7 +456,7 @@ AllButUnreachableFromMemoryHeuristic::runOnModule (Module & Module) {
   //
   // Get the reference to the DSA Graph.
   //
-  Graphs = &getAnalysis<EQTDDataStructures>();   
+  Graphs = &getAnalysis<EQTDDataStructures>();
 
   //
   // Find DSNodes which are reachable from globals and should be pool
@@ -479,7 +479,7 @@ AllButUnreachableFromMemoryHeuristic::AssignToPools (
   std::set<const DSNode*> ReachableFromMemory;
   for (DSGraph::node_iterator I = G->node_begin(), E = G->node_end();
        I != E; ++I) {
-    DSNode *N = I;
+    DSNode *N = &*I;
 #if 0
     //
     // Ignore nodes that are just globals and not arrays.
@@ -530,7 +530,7 @@ CyclicNodesHeuristic::runOnModule (Module & Module) {
   //
   // Get the reference to the DSA Graph.
   //
-  Graphs = &getAnalysis<EQTDDataStructures>();   
+  Graphs = &getAnalysis<EQTDDataStructures>();
 
   //
   // Find DSNodes which are reachable from globals and should be pool
@@ -573,7 +573,7 @@ SmartCoallesceNodesHeuristic::runOnModule (Module & Module) {
   //
   // Get the reference to the DSA Graph.
   //
-  Graphs = &getAnalysis<EQTDDataStructures>();   
+  Graphs = &getAnalysis<EQTDDataStructures>();
 
   //
   // Find DSNodes which are reachable from globals and should be pool
@@ -674,11 +674,11 @@ static void POVisit(DSNode *N, std::set<DSNode*> &Visited,
         if (NodeIsSelfRecursive(N)) {
           // Create a new alloca instruction for the pool...
           Value *AI = new AllocaInst(PoolDescType, 0, "PD", InsertPoint);
-        
+
           // Void types in DS graph are never used
           if (N->isNodeCompletelyFolded())
             std::cerr << "Node collapsing in '" << F.getName() << "'\n";
-        
+
           // Update the PoolDescriptors map
           PoolDescriptors.insert(std::make_pair(N, AI));
 #if 1
@@ -770,7 +770,7 @@ AllInOneGlobalPoolHeuristic::runOnModule (Module & Module) {
   //
   // Get the reference to the DSA Graph.
   //
-  Graphs = &getAnalysis<EQTDDataStructures>();   
+  Graphs = &getAnalysis<EQTDDataStructures>();
 
   //
   // Find DSNodes which are reachable from globals and should be pool
@@ -813,7 +813,7 @@ OnlyOverheadHeuristic::runOnModule (Module & Module) {
   //
   // Get the reference to the DSA Graph.
   //
-  Graphs = &getAnalysis<EQTDDataStructures>();   
+  Graphs = &getAnalysis<EQTDDataStructures>();
 
   //
   // Find DSNodes which are reachable from globals and should be pool
@@ -854,7 +854,7 @@ getDynamicallyNullPool(BasicBlock::iterator I) {
   }
   while (isa<AllocaInst>(I)) ++I;
 
-  return new LoadInst(NullGlobal, "nullpd", I);
+  return new LoadInst(NullGlobal, "nullpd", &*I);
 }
 
 // HackFunctionBody - This method is called on every transformed function body.

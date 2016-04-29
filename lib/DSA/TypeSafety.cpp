@@ -1,10 +1,10 @@
 //===- TypeSafety.cpp - Find type-safe pointers --------------------------- --//
-// 
+//
 //                     The LLVM Compiler Infrastructure
 //
 // This file was developed by the LLVM research group and is distributed under
 // the University of Illinois Open Source License. See LICENSE.TXT for details.
-// 
+//
 //===----------------------------------------------------------------------===//
 //
 // This pass implements code that determines if memory objects are used in
@@ -43,11 +43,11 @@ char TypeSafety<dsa>::ID = 0;
 // Method: getDSNodeHandle()
 //
 // Description:
-//  This method looks up the DSNodeHandle for a given LLVM globalvalue. 
+//  This method looks up the DSNodeHandle for a given LLVM globalvalue.
 //  The value is looked up in the globals graph
 //
 // Return value:
-//  A DSNodeHandle for the value is returned.  This DSNodeHandle is from 
+//  A DSNodeHandle for the value is returned.  This DSNodeHandle is from
 //  the GlobalsGraph.  Note that the DSNodeHandle may represent a NULL DSNode.
 //
 template<class dsa> DSNodeHandle
@@ -322,7 +322,7 @@ TypeSafety<dsa>::findTypeSafeDSNodes (const DSGraph * Graph) {
   DSGraph::node_const_iterator N = Graph->node_begin();
   DSGraph::node_const_iterator NE = Graph->node_end();
   for (; N != NE; ++N) {
-    if (isTypeSafe (N)) {
+    if (isTypeSafe (&*N)) {
       TypeSafeNodes.insert (&*N);
     }
   }

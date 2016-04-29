@@ -1,10 +1,10 @@
 //===-- PointerCompress.cpp - Pointer Compression Pass --------------------===//
-// 
+//
 //                     The LLVM Compiler Infrastructure
 //
 // This file was developed by the LLVM research group and is distributed under
 // the University of Illinois Open Source License. See LICENSE.TXT for details.
-// 
+//
 //===----------------------------------------------------------------------===//
 //
 // This file implements the -pointercompress pass.
@@ -58,7 +58,7 @@ namespace {
   cl::opt<bool>
   ADLFix("adl-pc",
          cl::desc("Enable Andrew's fixes/hacks"));
-  
+
 
   STATISTIC (NumCompressed, "Number of pools pointer compressed");
   STATISTIC (NumNotCompressed, "Number of pools not compressible");
@@ -113,7 +113,7 @@ namespace {
     /// ClonedFunctionInfoMap - This identifies the pool allocated function that
     /// a clone came from.
     std::map<Function*, FunctionCloneRecord> ClonedFunctionInfoMap;
-    
+
     /// CompressedGlobalPools - Keep track of which DSNodes in the globals graph
     /// are both pool allocated and should be compressed, and which GlobalValue
     /// their pool descriptor is.
@@ -147,12 +147,12 @@ namespace {
     /// information about the cloning process for it.  Otherwise, return a null
     /// pointer.
     FunctionCloneRecord *getCloneInfo(Function &F) {
-      std::map<Function*, FunctionCloneRecord>::iterator I = 
+      std::map<Function*, FunctionCloneRecord>::iterator I =
         ClonedFunctionInfoMap.find(&F);
       return I == ClonedFunctionInfoMap.end() ? 0 : &I->second;
     }
 
-    Function *GetFunctionClone(Function *F, 
+    Function *GetFunctionClone(Function *F,
                                std::set<const DSNode*> &PoolsToCompress,
                                PA::FuncInfo &FI, const DSGraph &CG);
     Function *GetExtFunctionClone(Function *F,
@@ -190,7 +190,7 @@ namespace {
   public:
     CompressedPoolInfo(const DSNode *N, Value *PD)
       : Pool(N), PoolDesc(PD), NewTy(0), PoolBase(0) {}
-    
+
     /// Initialize - When we know all of the pools in a function that are going
     /// to be compressed, initialize our state based on that data.
     void Initialize(std::map<const DSNode*, CompressedPoolInfo> &Nodes,
@@ -202,7 +202,7 @@ namespace {
     /// getNewSize - Return the size of each node after compression.
     ///
     unsigned getNewSize() const { return NewSize; }
-    
+
     /// getPoolDesc - Return the Value* for the pool descriptor for this pool.
     ///
     Value *getPoolDesc() const { return PoolDesc; }
@@ -223,7 +223,7 @@ namespace {
 
 /// Initialize - When we know all of the pools in a function that are going
 /// to be compressed, initialize our state based on that data.
-void CompressedPoolInfo::Initialize(std::map<const DSNode*, 
+void CompressedPoolInfo::Initialize(std::map<const DSNode*,
                                              CompressedPoolInfo> &Nodes,
                                     const DataLayout &TD) {
   // First step, compute the type of the compressed node.  This basically
@@ -293,7 +293,7 @@ ComputeCompressedType(Type *OrigTy, unsigned NodeOffset,
 Value *CompressedPoolInfo::EmitPoolBaseLoad(Instruction &I) const {
   if (DisablePoolBaseASR) {
     assert(PoolBase == 0 && "Mixing and matching optimized vs not!");
-    
+
     // Get the pool base pointer.
     Constant *Zero = ConstantInt::get(Int32Type, 0);
     Value *Opts[2] = {Zero, Zero};
@@ -303,17 +303,17 @@ Value *CompressedPoolInfo::EmitPoolBaseLoad(Instruction &I) const {
   } else {
     // If this is a pool descriptor passed into the function, and this is the
     // first use, emit a load of the pool base into the entry of the function.
-    if (PoolBase == 0 && (isa<Argument>(PoolDesc) || 
+    if (PoolBase == 0 && (isa<Argument>(PoolDesc) ||
                           isa<GlobalVariable>(PoolDesc))) {
       BasicBlock::iterator IP = I.getParent()->getParent()->begin()->begin();
       while (isa<AllocaInst>(IP)) ++IP;
       Constant *Zero = ConstantInt::get(Int32Type, 0);
       Value *Opts[2] = {Zero, Zero};
       Value *BasePtrPtr = GetElementPtrInst::Create(nullptr, getPoolDesc(),
-                                                    Opts, "poolbaseptrptr", IP);
-      PoolBase = new LoadInst(BasePtrPtr, "poolbaseptr", IP);
+                                                    Opts, "poolbaseptrptr", &*IP);
+      PoolBase = new LoadInst(BasePtrPtr, "poolbaseptr", &*IP);
     }
-    
+
     assert(PoolBase && "Mixing and matching optimized vs not!");
     return PoolBase;
   }
@@ -349,7 +349,7 @@ namespace {
     /// OldToNewValueMap - This keeps track of what new instructions we create
     /// for instructions that used to produce pointers into our pool.
     std::map<Value*, Value*> OldToNewValueMap;
-  
+
     const PointerCompress::PoolInfoMap &PoolInfo;
 
     /// TD - The DataLayout object for the current target.
@@ -511,7 +511,7 @@ namespace {
           PAFuncInfo.NewToOldValueMap[New] = I->second;
           PAFuncInfo.NewToOldValueMap.erase(I);
         }
-      
+
       } else {
         // Finally, if this occurred in a function that neither the pool
         // allocator nor the ptr compression implementation had to change,
@@ -583,7 +583,7 @@ InstructionRewriter::~InstructionRewriter() {
 void InstructionRewriter::visitReturnInst(ReturnInst &RI) {
   if (RI.getNumOperands() && isa<PointerType>(RI.getOperand(0)->getType()))
     if (!isa<PointerType>(RI.getParent()->getParent()->getReturnType())) {
-      // Compressing the return value.  
+      // Compressing the return value.
       ReturnInst::Create(RI.getContext(),
                          getTransformedValue(RI.getOperand(0)), &RI);
       RI.eraseFromParent();
@@ -643,7 +643,7 @@ void InstructionRewriter::visitICmpInst(ICmpInst &SCI) {
 
   const CompressedPoolInfo *SrcPI = getPoolInfo(NonNullPtr);
   if (SrcPI == 0) return;   // comparing non-compressed pointers.
- 
+
   std::string Name = SCI.getName(); SCI.setName("");
   Value *New = new ICmpInst(&SCI, SCI.getPredicate(),
                             getTransformedValue(SCI.getOperand(0)),
@@ -665,7 +665,7 @@ void InstructionRewriter::visitFCmpInst(FCmpInst &SCI) {
 
   const CompressedPoolInfo *SrcPI = getPoolInfo(NonNullPtr);
   if (SrcPI == 0) return;   // comparing non-compressed pointers.
- 
+
   std::string Name = SCI.getName(); SCI.setName("");
   Value *New = new FCmpInst(&SCI, SCI.getPredicate(),
                             getTransformedValue(SCI.getOperand(0)),
@@ -841,7 +841,7 @@ void InstructionRewriter::visitStoreInst(StoreInst &SI) {
     // FIXME: This assumes that all null pointers are compressed!
     SrcVal = ConstantInt::get(MEMUINTTYPE, 0);
   }
-  
+
   // Get the pool base pointer.
   Value *BasePtr = DestPI->EmitPoolBaseLoad(SI);
 
@@ -915,7 +915,7 @@ void InstructionRewriter::visitPoolAlloc(CallInst &CI) {
       Value *NewSize = ConstantInt::get(Int32Type, PI->getNewSize());
 
       Size = BinaryOperator::CreateAdd(Size,
-				       ConstantInt::get(Int32Type, 
+				       ConstantInt::get(Int32Type,
 							OldSizeV-1),
                                        "roundup", &CI);
       Size = BinaryOperator::CreateUDiv(Size, OldSize, "numnodes", &CI);
@@ -1038,7 +1038,7 @@ void InstructionRewriter::visitCallInst(CallInst &CI) {
     std::vector<unsigned> CompressedArgs;
     if (isa<PointerType>(CI.getType()) && getPoolInfo(&CI))
       CompressedArgs.push_back(0);  // Compress retval.
-  
+
     for (unsigned i = 1, e = CI.getNumOperands(); i != e; ++i)
       if (isa<PointerType>(CI.getOperand(i)->getType()) &&
           getPoolInfo(CI.getOperand(i))) {
@@ -1068,12 +1068,12 @@ void InstructionRewriter::visitCallInst(CallInst &CI) {
 
   // CalleeCallerMap: Mapping from nodes in the callee to nodes in the caller.
   DSGraph::NodeMapTy CalleeCallerMap;
-  
+
   // Do we need to compress the return value?
   if (isa<PointerType>(CI.getType()))
     DSGraph::computeNodeMapping(CG->getReturnNodeFor(FI->F),
                                 getMappedNodeHandle(&CI), CalleeCallerMap);
-    
+
   // Find the arguments we need to compress.
   unsigned NumPoolArgs = FI ? FI->ArgNodes.size() : 0;
   //only search non-vararg arguments
@@ -1081,8 +1081,8 @@ void InstructionRewriter::visitCallInst(CallInst &CI) {
   unsigned NumSearch = FI ? FI->F.arg_size() + 1: CI.getNumOperands();
   for (unsigned i = 1, e = NumSearch; i != e; ++i)
     if (isa<PointerType>(CI.getOperand(i)->getType()) && i > NumPoolArgs) {
-      Argument *FormalArg = next(FI->F.arg_begin(), i-1-NumPoolArgs);
-        
+      Argument *FormalArg = std::next(&*(FI->F.arg_begin()), i-1-NumPoolArgs);
+
       DSGraph::computeNodeMapping(CG->getNodeForValue(FormalArg),
                                   getMappedNodeHandle(CI.getOperand(i)),
                                   CalleeCallerMap);
@@ -1106,8 +1106,8 @@ void InstructionRewriter::visitCallInst(CallInst &CI) {
     PtrComp.NoArgFunctionsCalled.push_back(Callee);
     return;
   }
-    
-    
+
+
   // Get the clone of this function that uses compressed pointers instead of
   // normal pointers.
   Function *Clone = PtrComp.GetFunctionClone(Callee, PoolsToCompress,
@@ -1119,14 +1119,14 @@ void InstructionRewriter::visitCallInst(CallInst &CI) {
   Operands.reserve(CI.getNumOperands()-1);
 
   Function::arg_iterator AI = FI->F.arg_begin();
-  
+
   // Pass pool descriptors.
   for (unsigned i = 1; i != NumPoolArgs+1; ++i)
     Operands.push_back(CI.getOperand(i));
 
   for (unsigned i = NumPoolArgs+1, e = CI.getNumOperands(); i != e; ++i, ++AI)
     if (isa<PointerType>(CI.getOperand(i)->getType()) &&
-        PoolsToCompress.count(CG->getNodeForValue(AI).getNode()))
+        PoolsToCompress.count(CG->getNodeForValue(&*AI).getNode()))
       Operands.push_back(getTransformedValue(CI.getOperand(i)));
     else
       Operands.push_back(CI.getOperand(i));
@@ -1176,7 +1176,7 @@ static bool PoolIsCompressible(const DSNode *N) {
         // We currently only handle trivially self cyclic DS's right now.
         DEBUG(errs() << "Node points to nodes other than itself:\n");
         return false;
-      }        
+      }
     }
 
   if (!HasFields) {
@@ -1234,12 +1234,12 @@ void PointerCompress::FindPoolsToCompress(std::set<const DSNode*> &Pools,
   // globals graph, and if so, if it is compressed.
   for (DSGraph::node_iterator I = DSG->node_begin(), E = DSG->node_end();
        I != E;++I)
-    if (GlobalsGraphNodeMapping.count(I)) {
+    if (GlobalsGraphNodeMapping.count(&*I)) {
       // If it is a global pool, set up the pool descriptor appropriately.
-      DSNode *GGN = GlobalsGraphNodeMapping[I].getNode();
+      DSNode *GGN = GlobalsGraphNodeMapping[&*I].getNode();
       if (CompressedGlobalPools.count(GGN)) {
-        Pools.insert(I);
-        PreassignedPools[I] = CompressedGlobalPools[GGN];
+        Pools.insert(&*I);
+        PreassignedPools[&*I] = CompressedGlobalPools[GGN];
       }
     }
 }
@@ -1310,7 +1310,7 @@ CompressPoolsInFunction(Function &F,
     else
       PD = FI->PoolDescriptors[*I];
     assert(PD && "No pool descriptor available for this pool???");
-    
+
     PoolsToCompress.insert(std::make_pair(*I, CompressedPoolInfo(*I, PD)));
   }
 
@@ -1332,7 +1332,7 @@ CompressPoolsInFunction(Function &F,
       I->second.dump();
     }
   }
-  
+
   // Finally, rewrite the function body to use compressed pointers!
   InstructionRewriter IR(PoolsToCompress, DSG, *FI, FCR, *this);
   if (PremappedVals)
@@ -1373,7 +1373,14 @@ GetExtFunctionClone(Function *F, const std::vector<unsigned> &ArgsToComp) {
   // Next, create the clone prototype and insert it into the module.
   Clone = Function::Create (CFTy, GlobalValue::ExternalLinkage,
                        F->getName().str()+"_pc");
-  F->getParent()->getFunctionList().insert(F, Clone);
+  auto Found = std::find_if(F->getParent()->getFunctionList().begin(),
+                            F->getParent()->getFunctionList().end(),
+                            [&](const Function &i) {
+                              if (&i == F)
+                                return true;
+                              return false;
+                            });
+  F->getParent()->getFunctionList().insert(Found, Clone);
   return Clone;
 }
 
@@ -1408,7 +1415,7 @@ GetFunctionClone(Function *F, std::set<const DSNode*> &PoolsToCompress,
   Function::arg_iterator AI = FI.F.arg_begin();
   for (unsigned i = NumPoolArgs, e = FTy->getNumParams(); i != e; ++i, ++AI)
     if (isa<PointerType>(FTy->getParamType(i)) &&
-        PoolsToCompress.count(CG.getNodeForValue(AI).getNode())) {
+        PoolsToCompress.count(CG.getNodeForValue(&*AI).getNode())) {
       // Compressed pool, pass an index.
       ParamTypes.push_back(SCALARUINTTYPE);
     } else {
@@ -1419,10 +1426,17 @@ GetFunctionClone(Function *F, std::set<const DSNode*> &PoolsToCompress,
   // Next, create the clone prototype and insert it into the module.
   Clone = Function::Create (CFTy, GlobalValue::InternalLinkage,
                             F->getName().str()+".pc");
-  F->getParent()->getFunctionList().insert(F, Clone);
+  auto Found = std::find_if(F->getParent()->getFunctionList().begin(),
+                            F->getParent()->getFunctionList().end(),
+                            [&](const Function &i) {
+                              if (&i == F)
+                                return true;
+                              return false;
+                            });
+  F->getParent()->getFunctionList().insert(Found, Clone);
 
   // Remember where this clone came from.
-  FunctionCloneRecord &CFI = 
+  FunctionCloneRecord &CFI =
     ClonedFunctionInfoMap.insert(std::make_pair(Clone, F)).first->second;
 
   ++NumCloned;
@@ -1453,11 +1467,11 @@ GetFunctionClone(Function *F, std::set<const DSNode*> &PoolsToCompress,
       // Create a useless value* that is only needed to hold the uselist for the
       // argument.
       Value *V = new Argument(I->getType());   // dummy argument
-      RemappedArgs.push_back(std::make_pair(V, CI));
-      ValueMap[I] = V;
+      RemappedArgs.push_back(std::make_pair(V, &*CI));
+      ValueMap[&*I] = V;
     } else {
       // Otherwise, just remember the mapping.
-      ValueMap[I] = CI;
+      ValueMap[&*I] = &*CI;
     }
   }
 
@@ -1466,7 +1480,7 @@ GetFunctionClone(Function *F, std::set<const DSNode*> &PoolsToCompress,
   // TODO: Should the 'ModuleLevelChanges' flag be true or false here?
   CloneFunctionInto(Clone, F, ValueMap, true, Returns);
   Returns.clear();  // Don't need this.
-  
+
   // Invert the ValueMap into the NewToOldValueMap
   std::map<Value*, const Value*> &NewToOldValueMap = CFI.NewToOldValueMap;
   for (ValueToValueMapTy::iterator I = ValueMap.begin(),
@@ -1478,9 +1492,9 @@ GetFunctionClone(Function *F, std::set<const DSNode*> &PoolsToCompress,
          FI.PoolDescriptors.begin(), E = FI.PoolDescriptors.end();
        I != E; ++I)
     CFI.PoolDescriptors[I->first] = ValueMap[I->second];
-  
+
   ValueMap.clear();
-  
+
   // Recursively transform the function.
   CompressPoolsInFunction(*Clone, &RemappedArgs, &PoolsToCompress);
   return Clone;
@@ -1503,7 +1517,7 @@ void PointerCompress::HandleGlobalPools(Module &M) {
     // pool allocated.
     if (!isa<ConstantPointerNull>(I->second)) {
       if (PoolIsCompressible(N)) {
-        CompressedGlobalPools.insert(std::make_pair(N, 
+        CompressedGlobalPools.insert(std::make_pair(N,
                                              cast<GlobalValue>(I->second)));
         ++NumCompressed;
       } else {
@@ -1521,7 +1535,7 @@ void PointerCompress::InitializePoolLibraryFunctions(Module &M) {
   Type *VoidPtrTy = PointerType::getUnqual(Int8Type);
   Type *PoolDescPtrTy = PointerType::getUnqual(ArrayType::get(VoidPtrTy, 16));
 
-  PoolInitPC = M.getOrInsertFunction("poolinit_pc", VoidPtrTy, PoolDescPtrTy, 
+  PoolInitPC = M.getOrInsertFunction("poolinit_pc", VoidPtrTy, PoolDescPtrTy,
                                      Int32Type, Int32Type, NULL);
   PoolDestroyPC = M.getOrInsertFunction("pooldestroy_pc", VoidType,
                                         PoolDescPtrTy, NULL);
@@ -1542,10 +1556,10 @@ bool PointerCompress::runOnModule(Module &M) {
 
   PoolAlloc = &getAnalysis<PoolAllocatePassAllPools>();
   ECG = &getAnalysis<CompleteBUDataStructures>();
-  
+
   if (SmallIntCompress)
     MEMUINTTYPE = Int16Type;
-  else 
+  else
     MEMUINTTYPE = Int32Type;
 
   // FIXME: make this IntPtrTy.
@@ -1568,7 +1582,7 @@ bool PointerCompress::runOnModule(Module &M) {
     // compress any pools in it now.
     if (I->hasExternalLinkage()) {
       Changed |= CompressPoolsInFunction(*I);
-      TransformedFns.insert(I);
+      TransformedFns.insert(&*I);
     }
 
   // If compressing external functions (e.g. main), required other function

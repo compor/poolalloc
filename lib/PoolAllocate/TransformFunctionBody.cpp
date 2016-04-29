@@ -1,10 +1,10 @@
 //===-- TransformFunctionBody.cpp - Pool Function Transformer -------------===//
-// 
+//
 //                     The LLVM Compiler Infrastructure
 //
 // This file was developed by the LLVM research group and is distributed under
 // the University of Illinois Open Source License. See LICENSE.TXT for details.
-// 
+//
 //===----------------------------------------------------------------------===//
 //
 // This file defines the PoolAllocate::TransformBody method.
@@ -53,7 +53,7 @@ namespace {
     FuncTransform(PoolAllocate &P, DSGraph* g, FuncInfo &fi,
                   std::multimap<AllocaInst*, Instruction*> &poolUses,
                   std::multimap<AllocaInst*, CallInst*> &poolFrees)
-      : PAInfo(P), G(g), FI(fi), 
+      : PAInfo(P), G(g), FI(fi),
         PoolUses(poolUses), PoolFrees(poolFrees) {
     }
 
@@ -221,7 +221,7 @@ FuncTransform::verifyCallees (const std::vector<const Function *> & Functions) {
   return;
 }
 
-// Returns the clone if  V is a static function (not a pointer) and belongs 
+// Returns the clone if  V is a static function (not a pointer) and belongs
 // to an equivalence class i.e. is pool allocated
 // FIXME: Rename this to 'getCloneIfFunc' (or similar)?
 // FIXME: Strip pointer casts
@@ -392,7 +392,7 @@ void FuncTransform::visitFreeInst(FreeInst &FrI) {
     if (!FI.NewToOldValueMap.empty()) {
       std::map<Value*,const Value*>::iterator II =
         FI.NewToOldValueMap.find(&FrI);
-      assert(II != FI.NewToOldValueMap.end() && 
+      assert(II != FI.NewToOldValueMap.end() &&
              "FrI not found in clone?");
       FI.NewToOldValueMap.insert(std::make_pair(I, II->second));
       FI.NewToOldValueMap.erase(II);
@@ -411,13 +411,13 @@ FuncTransform::visitFreeCall (CallSite & CS) {
     // Delete the now obsolete free instruction...
     // FIXME: use "eraseFromParent"? (Note this might require a refactoring)
     InsertPt->getParent()->getInstList().erase(InsertPt);
- 
+
     // Update the NewToOldValueMap if this is a clone
     // FIXME: Use of utility function UpdateNewToOldValueMap
     if (!FI.NewToOldValueMap.empty()) {
       std::map<Value*,const Value*>::iterator II =
         FI.NewToOldValueMap.find(InsertPt);
-      assert(II != FI.NewToOldValueMap.end() && 
+      assert(II != FI.NewToOldValueMap.end() &&
              "free call not found in clone?");
       FI.NewToOldValueMap.insert(std::make_pair(I, II->second));
       FI.NewToOldValueMap.erase(II);
@@ -881,7 +881,7 @@ void FuncTransform::visitCallSite(CallSite& CS) {
     //
     NewCallee = CFI->Clone;
     ArgNodes = CFI->ArgNodes;
-    
+
     assert ((Graphs.hasDSGraph (*CF)) && "Function has no ECGraph!\n");
     CalleeGraph = Graphs.getDSGraph(*CF);
   } else {
@@ -959,7 +959,7 @@ void FuncTransform::visitCallSite(CallSite& CS) {
         CF = *sccii;
       }
     }
-    
+
     // Assuming the call graph is always correct. And if the call graph reports,
     // no callees, we can assume that it is right.
     //
@@ -1002,7 +1002,7 @@ void FuncTransform::visitCallSite(CallSite& CS) {
         assert(CalleeGraph == Graphs.getDSGraph(**I) &&
                "Callees at call site do not have a common graph!");
     }
-#endif    
+#endif
 
     // Find the DS nodes for the arguments that need to be added, if any.
     FuncInfo *CFI = PAInfo.getFuncInfo(*CF);
@@ -1018,10 +1018,10 @@ void FuncTransform::visitCallSite(CallSite& CS) {
     for (CallSite::arg_iterator I = CS.arg_begin(), E = CS.arg_end();
          I != E; ++I)
       ArgTys.push_back((*I)->getType());
-    
+
     FunctionType *FTy = FunctionType::get(TheCall->getType(), ArgTys, false);
     PointerType *PFTy = PointerType::getUnqual(FTy);
-    
+
     // If there are any pool arguments cast the func ptr to the right type.
     NewCallee = CastInst::CreatePointerCast(CS.getCalledValue(), PFTy, "tmp", TheCall);
   }
@@ -1035,7 +1035,7 @@ void FuncTransform::visitCallSite(CallSite& CS) {
   CallSite::arg_iterator AE = CS.arg_end();
   for ( ; FAI != E && AI != AE; ++FAI, ++AI)
     if (!isa<Constant>(*AI)) {
-      DSGraph::computeNodeMapping(CalleeGraph->getNodeForValue(FAI),
+      DSGraph::computeNodeMapping(CalleeGraph->getNodeForValue(&*FAI),
                                   getDSNodeHFor(*AI), NodeMapping, false);
     }
 
@@ -1052,7 +1052,7 @@ void FuncTransform::visitCallSite(CallSite& CS) {
 
 //   // Map the nodes that are pointed to by globals.
 //    DSScalarMap &CalleeSM = CalleeGraph->getScalarMap();
-//    for (DSScalarMap::global_iterator GI = G.getScalarMap().global_begin(), 
+//    for (DSScalarMap::global_iterator GI = G.getScalarMap().global_begin(),
 //           E = G.getScalarMap().global_end(); GI != E; ++GI)
 //      if (CalleeSM.count(*GI))
 //        DSGraph::computeNodeMapping(CalleeGraph->getNodeForValue(*GI),
@@ -1090,7 +1090,7 @@ void FuncTransform::visitCallSite(CallSite& CS) {
   // Add the rest of the arguments unless we're a thread creation point, in which case we only need the pools
   if(!thread_creation_point)
 	  Args.insert(Args.end(), CS.arg_begin(), CS.arg_end());
-    
+
   //
   // There are circumstances where a function is casted to another type and
   // then called (que horible).  We need to perform a similar cast if the
@@ -1147,7 +1147,7 @@ void FuncTransform::visitCallSite(CallSite& CS) {
   DEBUG(errs() << "  Result Call: " << *NewCall << "\n");
 
   if (!TheCall->getType()->isVoidTy()) {
-    // If we are modifying the original function, update the DSGraph... 
+    // If we are modifying the original function, update the DSGraph...
     DSGraph::ScalarMapTy &SM = G->getScalarMap();
     DSGraph::ScalarMapTy::iterator CII = SM.find(TheCall);
     if (CII != SM.end()) {

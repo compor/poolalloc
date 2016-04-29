@@ -1,10 +1,10 @@
 //===-- AllNodesHeuristic.cpp - All Nodes (SAFECode) Heuristic ------------===//
-// 
+//
 //                     The LLVM Compiler Infrastructure
 //
 // This file was developed by the LLVM research group and is distributed under
 // the University of Illinois Open Source License. See LICENSE.TXT for details.
-// 
+//
 //===----------------------------------------------------------------------===//
 //
 // This file implements a heuristic class that pool allocates a program
@@ -113,13 +113,13 @@ AllNodesHeuristic::findGlobalPoolNodes (DSNodeSet_t & Nodes) {
 
     //
     // Scan through all DSNodes in the local graph.  If a local DSNode has a
-    // corresponding DSNode in the globals graph that is reachable from a 
+    // corresponding DSNode in the globals graph that is reachable from a
     // global, then add the local DSNode to the set of DSNodes reachable from
     // a global.
     //
     DSGraph::node_iterator ni = G->node_begin();
     for (; ni != G->node_end(); ++ni) {
-      DSNode * N = ni;
+      DSNode * N = &*ni;
       DSNode * GGN = NodeMap[N].getNode();
 
       assert (!GGN || GlobalNodes.count (GGN));
@@ -130,7 +130,7 @@ AllNodesHeuristic::findGlobalPoolNodes (DSNodeSet_t & Nodes) {
 
   //
   // Scan through all the local graphs looking for DSNodes which may be
-  // reachable by a global.  These nodes may not end up in the globals graph 
+  // reachable by a global.  These nodes may not end up in the globals graph
   // because of the fact that DSA doesn't actually know what is happening to
   // them.
   //
@@ -207,7 +207,7 @@ AllNodesHeuristic::getLocalPoolNodes (const Function & F, DSNodeList_t & Nodes) 
        I != E;
        ++I) {
     // Get the DSNode and, if applicable, its mirror in the globals graph
-    DSNode * N   = I;
+    DSNode * N   = &*I;
     DSNode * GGN = GlobalsGraphNodeMapping[N].getNode();
 
     //
@@ -260,7 +260,7 @@ AllNodesHeuristic::runOnModule (Module & Module) {
   //
   // Get the reference to the DSA Graph.
   //
-  Graphs = &getAnalysis<EQTDDataStructures>();   
+  Graphs = &getAnalysis<EQTDDataStructures>();
   assert (Graphs && "No DSGraphs!\n");
 
   //

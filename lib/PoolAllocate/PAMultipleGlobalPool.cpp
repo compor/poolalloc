@@ -1,10 +1,10 @@
 //===-- PAMultipleGlobalPool.cpp - Multiple Global Pool Allocation Pass ---===//
-// 
+//
 //                     The LLVM Compiler Infrastructure
 //
 // This file was developed by the LLVM research group and is distributed under
 // the University of Illinois Open Source License. See LICENSE.TXT for details.
-// 
+//
 //===----------------------------------------------------------------------===//
 //
 // A minimal poolallocator that assignes all allocation to multiple global
@@ -189,7 +189,7 @@ PoolAllocateMultipleGlobalPool::ProcessFunctionBodySimple (Function& F, const Da
           FInfo.PoolDescriptors.insert(std::make_pair(Node,Pool));
 
           // Mark the realloc as an instruction to delete
-          toDelete.push_back(ii);
+          toDelete.push_back(&*ii);
 
           // Insertion point - Instruction before which all our instructions go
           Instruction *InsertPt = CI;
@@ -233,7 +233,7 @@ PoolAllocateMultipleGlobalPool::ProcessFunctionBodySimple (Function& F, const Da
           FInfo.PoolDescriptors.insert(std::make_pair(Node,Pool));
 
           // Mark the realloc as an instruction to delete
-          toDelete.push_back(ii);
+          toDelete.push_back(&*ii);
 
           // Insertion point - Instruction before which all our instructions go
           Instruction *InsertPt = CI;
@@ -278,7 +278,7 @@ PoolAllocateMultipleGlobalPool::ProcessFunctionBodySimple (Function& F, const Da
           FInfo.PoolDescriptors.insert(std::make_pair(Node, Pool));
 
           // Mark the realloc as an instruction to delete
-          toDelete.push_back(ii);
+          toDelete.push_back(&*ii);
 
           // Insertion point - Instruction before which all our instructions go
           Instruction *InsertPt = CI;
@@ -328,7 +328,7 @@ PoolAllocateMultipleGlobalPool::ProcessFunctionBodySimple (Function& F, const Da
         Returns.push_back(cast<ReturnInst>(ii));
       }
     }
-  
+
   //delete malloc and alloca insts
   for (unsigned x = 0; x < toDelete.size(); ++x)
     toDelete[x]->eraseFromParent();
@@ -361,20 +361,20 @@ PoolAllocateMultipleGlobalPool::CreateGlobalPool (unsigned RecSize,
   assert(0 && "Not implemented!");
 #if 0
   SteensgaardDataStructures * DS = (SteensgaardDataStructures*)Graphs;
-  
+
   assert (DS && "PoolAllocateMultipleGlobalPools requires Steensgaard Data Structure!");
 
   //
   // Create a pool for each node within the DSGraph.
   //
   DSGraph * G = DS->getResultGraph();
-  for (DSGraph::node_const_iterator I = G->node_begin(), 
+  for (DSGraph::node_const_iterator I = G->node_begin(),
         E = G->node_end(); I != E; ++I) {
     generatePool (I->getSize(), Align, M, BB, I);
   }
 
   DSGraph * GG = DS->getGlobalsGraph();
-  for(DSGraph::node_const_iterator I = GG->node_begin(), 
+  for(DSGraph::node_const_iterator I = GG->node_begin(),
         E = GG->node_end(); I != E; ++I) {
     if (I->globals_begin() != I->globals_end()) {
       const GlobalValue * GV = *(I->globals_begin());
@@ -395,7 +395,7 @@ void
 PoolAllocateMultipleGlobalPool::generatePool(unsigned RecSize,
                                              unsigned Align,
                                              Module& M,
-                                             BasicBlock * InsertAtEnd, 
+                                             BasicBlock * InsertAtEnd,
                                              const DSNode * Node) {
 
   if (!PoolMap[Node]) {
@@ -408,7 +408,7 @@ PoolAllocateMultipleGlobalPool::generatePool(unsigned RecSize,
     Value *ElSize = ConstantInt::get(Int32Type, RecSize);
     Value *AlignV = ConstantInt::get(Int32Type, Align);
     Value* Opts[3] = {GV, ElSize, AlignV};
-    
+
     CallInst::Create(PoolInit, Opts, "", InsertAtEnd);
     PoolMap[Node] = GV;
   }

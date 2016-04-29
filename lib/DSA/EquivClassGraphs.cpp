@@ -44,22 +44,22 @@ bool EquivBUDataStructures::runOnModule(Module &M) {
 
   //make a list of all the DSGraphs
   std::set<DSGraph *>graphList;
-  for(Module::iterator F = M.begin(); F != M.end(); ++F) 
+  for(Module::iterator F = M.begin(); F != M.end(); ++F)
   {
     if(!(F->isDeclaration()))
-      graphList.insert(getOrCreateGraph(F));
+      graphList.insert(getOrCreateGraph(&*F));
   }
 
   //update the EQ class from indirect calls
   buildIndirectFunctionSets();
   formGlobalECs();
   mergeGraphsByGlobalECs();
-  
+
   //remove all the DSGraph, that still have references
-  for(Module::iterator F = M.begin(); F != M.end(); ++F) 
+  for(Module::iterator F = M.begin(); F != M.end(); ++F)
   {
     if(!(F->isDeclaration()))
-      graphList.erase(getOrCreateGraph(F));
+      graphList.erase(getOrCreateGraph(&*F));
   }
   // free memory for the DSGraphs, no longer in use.
   for(std::set<DSGraph*>::iterator i = graphList.begin(),e = graphList.end();
@@ -72,26 +72,26 @@ bool EquivBUDataStructures::runOnModule(Module &M) {
 
   for (Module::iterator F = M.begin(); F != M.end(); ++F) {
     if (!(F->isDeclaration())) {
-      if (DSGraph * Graph = getOrCreateGraph(F)) {
+      if (DSGraph * Graph = getOrCreateGraph(&*F)) {
         cloneGlobalsInto(Graph, DSGraph::DontCloneCallNodes |
                         DSGraph::DontCloneAuxCallNodes);
       }
     }
   }
-  
-  bool result = runOnModuleInternal(M); 
-  
+
+  bool result = runOnModuleInternal(M);
+
   // CBU contains the correct call graph.
   // Restore it, so that subsequent passes and clients can get it.
   restoreCorrectCallGraph();
   return result;
 }
 
-// Verifies that all the functions in an equivalence calss have been merged. 
+// Verifies that all the functions in an equivalence calss have been merged.
 // This is required by to be true by poolallocation.
 void
 EquivBUDataStructures::verifyMerging() {
-  
+
   EquivalenceClasses<const GlobalValue*>::iterator EQSI = GlobalECs.begin();
   EquivalenceClasses<const GlobalValue*>::iterator EQSE = GlobalECs.end();
   for (;EQSI != EQSE; ++EQSI) {
@@ -103,14 +103,14 @@ EquivBUDataStructures::verifyMerging() {
       if (const Function* F = dyn_cast<Function>(*MI)){
         if (F->isDeclaration())
           continue;
-          
+
           if(first) {
             firstG = getOrCreateGraph(F);
             first = false;
-          } 
+          }
           DSGraph *G = getOrCreateGraph(F);
           if( G != firstG) {
-            assert(G == firstG && "all functions in a Global EC do not have a merged graph"); 
+            assert(G == firstG && "all functions in a Global EC do not have a merged graph");
           }
       }
     }
@@ -122,7 +122,7 @@ EquivBUDataStructures::verifyMerging() {
 //
 // Description:
 //  Merge all graphs that are in the same equivalence class.  This ensures
-//  that transforms like Automatic Pool Allocation only see one graph for a 
+//  that transforms like Automatic Pool Allocation only see one graph for a
 //  call site.
 //
 //  After this method is executed, all functions in an equivalence class will
@@ -136,7 +136,7 @@ EquivBUDataStructures::mergeGraphsByGlobalECs() {
   // For each leader, we scan through all of its members and merge the DSGraphs
   // for members which are functions.
   //
- 
+
   EquivalenceClasses<const GlobalValue*>::iterator EQSI = GlobalECs.begin();
   EquivalenceClasses<const GlobalValue*>::iterator EQSE = GlobalECs.end();
   for (;EQSI != EQSE; ++EQSI) {

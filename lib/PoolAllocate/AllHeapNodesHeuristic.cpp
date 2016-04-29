@@ -1,10 +1,10 @@
 //===-- Heuristic.cpp - Interface to PA heuristics ------------------------===//
-// 
+//
 //                     The LLVM Compiler Infrastructure
 //
 // This file was developed by the LLVM research group and is distributed under
 // the University of Illinois Open Source License. See LICENSE.TXT for details.
-// 
+//
 //===----------------------------------------------------------------------===//
 //
 // This file implements the old "AllNodes" heuristic which the SAFECode
@@ -73,21 +73,21 @@ AllHeapNodesHeuristic::GetNodesReachableFromGlobals (DSGraph* G,
   //
   // Remove those global nodes which we know will never be pool allocated.
   //
-  
+
   std::vector<const DSNode *> toRemove;
   for (DenseSet<const DSNode*>::iterator I = NodesFromGlobals.begin(),
          E = NodesFromGlobals.end(); I != E; ) {
     DenseSet<const DSNode*>::iterator Last = I; ++I;
 
     const DSNode *tmp = *Last;
-    if (!(tmp->isHeapNode())) 
+    if (!(tmp->isHeapNode()))
       toRemove.push_back (tmp);
     // Do not poolallocate nodes that are cast to Int.
     // As we do not track through ints, these could be escaping
     if (tmp->isPtrToIntNode())
       toRemove.push_back(tmp);
   }
- 
+
   //
   // Remove all globally reachable DSNodes which do not require pools.
   //
@@ -110,7 +110,7 @@ AllHeapNodesHeuristic::GetNodesReachableFromGlobals (DSGraph* G,
 
     //
     // Scan through all DSNodes in the local graph.  If a local DSNode has a
-    // corresponding DSNode in the globals graph that is reachable from a 
+    // corresponding DSNode in the globals graph that is reachable from a
     // global, then add the local DSNode to the set of DSNodes reachable from a
     // global.
     //
@@ -120,7 +120,7 @@ AllHeapNodesHeuristic::GetNodesReachableFromGlobals (DSGraph* G,
 
     DSGraph::node_iterator ni = G->node_begin();
     for (; ni != G->node_end(); ++ni) {
-      DSNode * N = ni;
+      DSNode * N = &*ni;
       if (NodesFromGlobals.count (NodeMap[N].getNode()))
         NodesFromGlobals.insert (N);
     }
@@ -171,15 +171,15 @@ AllHeapNodesHeuristic::findGlobalPoolNodes (DSNodeSet_t & Nodes) {
       G->computeGToGGMapping (NodeMap);
       //
       // Scan through all DSNodes in the local graph.  If a local DSNode has a
-      // corresponding DSNode in the globals graph that is reachable from a 
+      // corresponding DSNode in the globals graph that is reachable from a
       // global, then add the local DSNode to the set of DSNodes reachable from
       // a global.
       //
       DSGraph::node_iterator ni = G->node_begin();
       for (; ni != G->node_end(); ++ni) {
-        DSNode * N = ni;
+        DSNode * N = &*ni;
         DSNode * GGN = NodeMap[N].getNode();
-        
+
         //assert (!GGN || GlobalHeapNodes.count (GGN));
         if (GGN && GlobalHeapNodes.count (GGN))
           PoolMap[GGN].NodesInPool.push_back (N);
@@ -216,7 +216,7 @@ AllHeapNodesHeuristic::runOnModule (Module & Module) {
   //
   // Get the reference to the DSA Graph.
   //
-  Graphs = &getAnalysis<EQTDDataStructures>();   
+  Graphs = &getAnalysis<EQTDDataStructures>();
   assert (Graphs && "No DSGraphs!\n");
 
   //
@@ -234,7 +234,7 @@ AllHeapNodesHeuristic::AssignToPools (const std::vector<const DSNode*> &NodesToP
                                   Function *F, DSGraph* G,
                                   std::vector<OnePool> &ResultPools) {
   for (unsigned i = 0, e = NodesToPA.size(); i != e; ++i){
-     if (PoolMap.find (NodesToPA[i]) != PoolMap.end())           
+     if (PoolMap.find (NodesToPA[i]) != PoolMap.end())
        ResultPools.push_back(PoolMap[NodesToPA[i]]);
      else
        ResultPools.push_back (OnePool(NodesToPA[i]));
