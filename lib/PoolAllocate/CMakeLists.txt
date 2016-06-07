@@ -12,30 +12,29 @@ set(SOURCES
   TransformFunctionBody.cpp
 )
 
-# Build both shared and static libs
-# Also, drop the 'lib' suffix to match how
-# the Makefile-driven version functions.
 
-if( NOT WIN32 AND LLVM_ENABLE_PIC )
-  set(bsl ${BUILD_SHARED_LIBS})
-  set(BUILD_SHARED_LIBS ON)
-  add_llvm_library(poolalloc ${SOURCES})
-  set(BUILD_SHARED_LIBS ${bsl})
-  set_property(TARGET poolalloc PROPERTY OUTPUT_NAME "poolalloc")
-  set_property(TARGET poolalloc PROPERTY PREFIX "")
-  set(PA_STATIC_TARGET poolalloc_static)
-  add_dependencies(poolalloc intrinsics_gen)
-  target_link_libraries(poolalloc LLVMDataStructure)
-  target_link_libraries(poolalloc LLVMTransformUtils)
-else()
-  set(PA_STATIC_TARGET poolalloc)
+set(PROJECT_NAME "poolalloc${PROJECT_TARGET_SUFFIX}")
+
+project_add_library(${PROJECT_NAME} ${SOURCES})
+
+set_property(TARGET ${PROJECT_NAME} PROPERTY OUTPUT_NAME "poolalloc")
+
+# Drop the 'lib' suffix to match how the Makefile-driven version functions.
+set_property(TARGET ${PROJECT_NAME} PROPERTY PREFIX "")
+
+# intrinsics should have already been build 
+# if we are using an already built LLVM project
+if(NOT ${PROJECT_ENABLE_LLVM_EXTERNAL})
+  add_dependencies(${PROJECT_NAME} intrinsics_gen)
 endif()
 
-if( NOT BUILD_SHARED_LIBS )
-  add_llvm_library(${PA_STATIC_TARGET} ${SOURCES})
-  set_property(TARGET ${PA_STATIC_TARGET} PROPERTY OUTPUT_NAME "poolalloc")
-  set_property(TARGET ${PA_STATIC_TARGET} PROPERTY PREFIX "")
-  add_dependencies(${PA_STATIC_TARGET} intrinsics_gen)
-  target_link_libraries(${PA_STATIC_TARGET} LLVMDataStructure)
-  target_link_libraries(${PA_STATIC_TARGET} LLVMTransformUtils)
+# Not sure if all those are needed even for standalone execs (see tools dir).
+target_link_libraries(${PROJECT_NAME} LLVMDataStructure)
+#target_link_libraries(${PROJECT_NAME} LLVMTransformUtils)
+
+if(${PROJECT_ENABLE_LLVM_EXTERNAL})
+  install(TARGETS ${PROJECT_NAME} 
+    DESTINATION ${PROJECT_LIB_INTDIR}
+    INCLUDES DESTINATION include)
 endif()
+
