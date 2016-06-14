@@ -70,7 +70,7 @@ if(${POOLALLOC_STANDALONE_BUILD})
 
   # The suffix allows to differentiate between standalone
   # and in-source LLVM builds, but can be changed on demand.
-  if(NOT DEFINED ${PROJECT_TARGET_SUFFIX})
+  if(NOT DEFINED PROJECT_TARGET_SUFFIX)
 	set(PROJECT_TARGET_SUFFIX "_ext")
   endif()
 
