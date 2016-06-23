@@ -4,19 +4,19 @@ cmake_minimum_required(VERSION 3.2)
 set(PROJECT_NAME "poolalloc")
 
 # Standalone build or part of LLVM?
-set(POOLALLOC_STANDALONE_BUILD FALSE)
+set(PROJECT_STANDALONE_BUILD FALSE)
 
 if("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
   project(${PROJECT_NAME} C CXX)
-  set(POOLALLOC_STANDALONE_BUILD TRUE)
+  set(PROJECT_STANDALONE_BUILD TRUE)
 endif()
 
 message(STATUS "Configuring ${PROJECT_NAME} as external LLVM project:\
- ${POOLALLOC_STANDALONE_BUILD}")
+ ${PROJECT_STANDALONE_BUILD}")
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
-if(${POOLALLOC_STANDALONE_BUILD})
+if(${PROJECT_STANDALONE_BUILD})
   # find_package in CONFIG mode will lookup and include LLVMConfig.cmake
   find_package(LLVM REQUIRED CONFIG)
 endif()
@@ -30,7 +30,7 @@ set(LLVM_LIBRARY_OUTPUT_INTDIR "${CMAKE_BINARY_DIR}/${CMAKE_CFG_INT_DIR}/lib")
 # These are required if functions are used:
 # - add_llvm_loadable_module()
 # - add_llvm_library
-if(${POOLALLOC_STANDALONE_BUILD})
+if(${PROJECT_STANDALONE_BUILD})
   list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
 else()
   list(APPEND CMAKE_MODULE_PATH "${CMAKE_BINARY_DIR}/share/llvm/cmake/")
@@ -52,7 +52,7 @@ message(STATUS "Configuring ${PROJECT_NAME} EH support: ${LLVM_ENABLE_EH}")
 
 
 function(project_add_library fname)
-if(${POOLALLOC_STANDALONE_BUILD})
+if(${PROJECT_STANDALONE_BUILD})
   add_library(${fname} ${ARGN})
 else()
   add_llvm_library(${fname} ${ARGN})
@@ -60,7 +60,7 @@ endif()
 endfunction()
 
 
-if(${POOLALLOC_STANDALONE_BUILD})
+if(${PROJECT_STANDALONE_BUILD})
   # This will be set by LLVM if it is built as in-source LLVM project.
   set(BUILD_SHARED_LIBS ON)
 
@@ -115,7 +115,7 @@ endif()
 # only if it affects the public interface (e.g. included by a header file).
 # In this case, it currently does affect it.
 
-if(${POOLALLOC_STANDALONE_BUILD})
+if(${PROJECT_STANDALONE_BUILD})
   install(DIRECTORY include
 	DESTINATION .
 	PATTERN "Config" EXCLUDE)

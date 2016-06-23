@@ -23,18 +23,16 @@ set(SOURCES
   TypeSafety.cpp)
 
 
-set(PROJECT_NAME "LLVMDataStructure${PROJECT_TARGET_SUFFIX}")
+set(PROJECT_BASE_NAME "LLVMDataStructure")
+set(PROJECT_NAME "${PROJECT_BASE_NAME}${PROJECT_TARGET_SUFFIX}")
 
 project_add_library(${PROJECT_NAME} ${SOURCES})
 
-set_property(TARGET ${PROJECT_NAME} PROPERTY OUTPUT_NAME "LLVMDataStructure")
-
-# Drop the 'lib' suffix to match how the Makefile-driven version functions.
-set_property(TARGET ${PROJECT_NAME} PROPERTY PREFIX "")
+set_property(TARGET ${PROJECT_NAME} PROPERTY OUTPUT_NAME ${PROJECT_BASE_NAME})
 
 # intrinsics should have already been build 
 # if we are using an already built LLVM project
-if(NOT ${POOLALLOC_STANDALONE_BUILD})
+if(NOT ${PROJECT_STANDALONE_BUILD})
   add_dependencies(${PROJECT_NAME} intrinsics_gen)
 endif()
 
@@ -42,14 +40,14 @@ endif()
 # from tools like opt.
 # Even for in-source LLVM builds it might be enough to denote a simple
 # dependency for the required build order
-if(NOT ${POOLALLOC_STANDALONE_BUILD})
+if(NOT ${PROJECT_STANDALONE_BUILD})
   target_link_libraries(${PROJECT_NAME} LLVMCore)
   target_link_libraries(${PROJECT_NAME} LLVMPasses)
   target_link_libraries(${PROJECT_NAME} LLVMSupport)
   target_link_libraries(${PROJECT_NAME} LLVMAnalysis)
 endif()
 
-if(${POOLALLOC_STANDALONE_BUILD})
+if(${PROJECT_STANDALONE_BUILD})
   install(TARGETS ${PROJECT_NAME} 
     DESTINATION ${PROJECT_LIB_INTDIR}
     INCLUDES DESTINATION include)
